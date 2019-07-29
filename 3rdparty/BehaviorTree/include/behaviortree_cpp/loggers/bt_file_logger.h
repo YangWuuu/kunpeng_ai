@@ -11,14 +11,16 @@ namespace BT
 class FileLogger : public StatusChangeLogger
 {
   public:
-    FileLogger(const Tree &tree, const char* filename, uint16_t buffer_size = 10);
+    FileLogger();
 
-    virtual ~FileLogger() override;
+    ~FileLogger() override;
 
-    virtual void callback(Duration timestamp, const TreeNode& node, NodeStatus prev_status,
+    void setTree(const BT::Tree& tree, const char* filename, uint16_t buffer_size = 10);
+
+    void callback(Duration timestamp, const TreeNode& node, NodeStatus prev_status,
                           NodeStatus status) override;
 
-    virtual void flush() override;
+    void flush() override;
 
   private:
     std::ofstream file_os_;

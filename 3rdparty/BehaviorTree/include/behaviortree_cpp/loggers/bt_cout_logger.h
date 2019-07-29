@@ -21,13 +21,15 @@ class StdCoutLogger : public StatusChangeLogger
     static std::atomic<bool> ref_count;
 
   public:
-    StdCoutLogger(const BT::Tree& tree);
+    StdCoutLogger();
     ~StdCoutLogger() override;
 
-    virtual void callback(Duration timestamp, const TreeNode& node, NodeStatus prev_status,
+    void setTree(const BT::Tree& tree);
+
+    void callback(Duration timestamp, const TreeNode& node, NodeStatus prev_status,
                           NodeStatus status) override;
 
-    virtual void flush() override;
+    void flush() override;
 };
 
 }   // end namespace

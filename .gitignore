@@ -454,3 +454,5 @@ CMakeLists.txt.user*
 # QtCreator local machine specific files for imported projects
 *creator.user*
 /.vs/
+/*.zip
+*.fbl

@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
     int myTeamId = std::stoi(argv[1]);
 
-    Player player(myTeamId, "ai_yang");
+    Player player(myTeamId, "ai_yang", argc > 4 && string(argv[4]) == "debug");
     /* Ïòserver×¢²á */
     char regMsg[200] = {'\0'};
     sprintf(regMsg, R"({"msg_name":"registration","msg_data":{"team_id":%d,"team_name":"ai_yang"}})", myTeamId);

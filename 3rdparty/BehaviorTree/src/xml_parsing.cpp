@@ -512,7 +512,8 @@ namespace BT {
             output_tree.nodes.push_back(node);
 
             if (node->type() == NodeType::SUBTREE) {
-                auto new_bb = Blackboard::create(blackboard);
+//                auto new_bb = Blackboard::create(blackboard);
+                auto new_bb = blackboard;
 
                 for (const XMLAttribute *attr = element->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
                     new_bb->addSubtreeRemapping(attr->Name(), attr->Value());

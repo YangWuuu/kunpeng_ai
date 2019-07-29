@@ -5,11 +5,13 @@
 #include <vector>
 #include <map>
 #include <memory>
-#include "cJSON.h"
 
 #include "util.h"
+#include "cJSON.h"
 #include "behaviortree_cpp/behavior_tree.h"
-#include <behaviortree_cpp/bt_factory.h>
+#include "behaviortree_cpp/bt_factory.h"
+#include "behaviortree_cpp/loggers/bt_file_logger.h"
+#include "behaviortree_cpp/loggers/bt_cout_logger.h"
 #include "customAction.h"
 #include "customCondition.h"
 
@@ -19,7 +21,10 @@ using namespace std;
 
 class Player {
 public:
-    explicit Player(int _team_id, string _team_name) : team_id(_team_id), team_name(move(_team_name)) {
+    explicit Player(int _team_id, string _team_name, bool _debug = false)
+            : team_id(_team_id),
+              team_name(move(_team_name)),
+              debug(_debug) {
         blackboard = BT::Blackboard::create();
         blackboard->set("leg", &leg);
         blackboard->set("ri", &ri);
@@ -33,6 +38,11 @@ public:
         factory.registerNodeType<RunAway>("RunAway");
 
         tree = factory.createTreeFromText(xml_text, blackboard);
+        if (debug) {
+            printTreeRecursively(tree.root_node);
+            logger_cout.setTree(tree);
+            logger_file.setTree(tree, "bt_trace.fbl");
+        }
     }
 
     ~Player() = default;
@@ -54,6 +64,10 @@ private:
 
     int team_id;
     string team_name;
+
+    bool debug;
+    BT::StdCoutLogger logger_cout;
+    BT::FileLogger logger_file;
 };
 
 

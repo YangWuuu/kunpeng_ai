@@ -23,6 +23,7 @@ typedef SOCKET                                  OS_SOCKET;
 #elif defined (OS_POSIX)
 ///////////////////////////////////////////////////////////////// 其他系统
 #include <sys/socket.h>
+#include<sys/time.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
