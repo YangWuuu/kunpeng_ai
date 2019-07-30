@@ -49,7 +49,6 @@ public:
 
 
     void message_leg_start(cJSON *msg);
-    void parse_map();
 
     void message_leg_end(cJSON *msg);
 

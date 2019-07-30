@@ -456,3 +456,4 @@ CMakeLists.txt.user*
 /.vs/
 /*.zip
 *.fbl
+tags

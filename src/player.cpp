@@ -39,17 +39,17 @@ void Player::message_leg_start(cJSON *msg) {
             cJSON *msg_direction = cJSON_GetObjectItem(msg_tunnel, "direction");
             int x = msg_x->valueint;
             int y = msg_y->valueint;
-            string direction = string(msg_direction->valuestring);
-            if (direction == "up") {
-                leg.maps[x][y]->direction = Direction::UP;
-            } else if (direction == "down") {
-                leg.maps[x][y]->direction = Direction::DOWN;
-            } else if (direction == "left") {
-                leg.maps[x][y]->direction = Direction::LEFT;
-            } else if (direction == "right") {
-                leg.maps[x][y]->direction = Direction::RIGHT;
+            string tunnel = string(msg_direction->valuestring);
+            if (tunnel == "up") {
+                leg.maps[x][y]->tunnel = Direction::UP;
+            } else if (tunnel == "down") {
+                leg.maps[x][y]->tunnel = Direction::DOWN;
+            } else if (tunnel == "left") {
+                leg.maps[x][y]->tunnel = Direction::LEFT;
+            } else if (tunnel == "right") {
+                leg.maps[x][y]->tunnel = Direction::RIGHT;
             } else {
-                log_error("direction is wrong %s", direction.c_str());
+                log_error("direction is wrong %s", tunnel.c_str());
             }
         }
     }

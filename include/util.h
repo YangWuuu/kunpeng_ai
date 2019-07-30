@@ -26,26 +26,36 @@ public:
         return make_shared<Point>(_x, _y);
     }
 
-    static int distance(const Ptr &p1, const Ptr &p2){
+    static int distance(const Ptr &p1, const Ptr &p2) {
         return abs(p1->x - p2->x) + abs(p1->y - p2->y);
     }
 
-    explicit Point(int _x, int _y) : x(_x), y(_y), direction(Direction::NONE), meteor(false), wormhole(nullptr) {}
+    explicit Point(int _x, int _y) : x(_x), y(_y), tunnel(Direction::NONE), meteor(false), wormhole(nullptr),
+                                     visited(false) {
+        next[Direction::UP] = nullptr;
+        next[Direction::DOWN] = nullptr;
+        next[Direction::LEFT] = nullptr;
+        next[Direction::RIGHT] = nullptr;
+        next[Direction::NONE] = nullptr;
+    }
 
 public:
     int x;
     int y;
-    Direction direction;
+    Direction tunnel;
     bool meteor;
     Ptr wormhole;
     map<Direction, Ptr> next;
+
+    // check loop
+    bool visited;
 };
 
 class Unit {
 public:
     using Ptr = std::shared_ptr<Unit>;
 
-    static Unit::Ptr gen(int _id, int _score, int _sleep, int _team, Point::Ptr _loc) {
+    static Unit::Ptr gen(int _id, int _score, int _sleep, int _team, const Point::Ptr &_loc) {
         return make_shared<Unit>(_id, _score, _sleep, _team, _loc);
     }
 
@@ -119,61 +129,84 @@ public:
         }
     }
 
-    void parse_map(){
-        for (auto &col : maps){
-            
+    void parse_map() {
+        for (auto &col : maps) {
+            for (auto &r : col.second) {
+                Point::Ptr &p = r.second;
+                p->next[Direction::NONE] = find_next_point_with_no_move(p);
+            }
         }
     }
-    
-    Point::Ptr get_tunnel_direction_point(Point::Ptr){
-        
-    }
 
-    Point::Ptr get_direction_point(Point::Ptr p, Direction d){
-        Point::Ptr ret = p;
+    Point::Ptr around_with_meteor_one_step(const Point::Ptr &p, Direction d) {
         int x = p->x;
         int y = p->y;
         int next_x = x;
         int next_y = y;
-        switch(d){
+        switch (d) {
             case Direction::UP:
                 if (y > 0)
-                    next_y --;
+                    next_y--;
                 break;
             case Direction::DOWN:
                 if (y < height - 1)
-                    next_y ++;
+                    next_y++;
                 break;
             case Direction::LEFT:
                 if (x > 0)
-                    next_x --;
+                    next_x--;
                 break;
             case Direction::RIGHT:
                 if (x < width - 1)
-                    next_x ++;
+                    next_x++;
                 break;
             case Direction::NONE:
-                //TODO wormhole
                 break;
             default:
                 break;
         }
         if (maps[next_x][next_y]->meteor || x + y == next_x + next_y)
             return p;
-        switch (maps[next_x][next_y]->direction){
-            case Direction::UP:
-            case Direction::DOWN:
-            case Direction::LEFT:
-            case Direction::RIGHT:
+        return maps[next_x][next_y];
+    }
 
-                break;
-            case Direction::NONE:
-                break;
-            default:
-                break;
+    Point::Ptr find_next_point_with_no_move(const Point::Ptr &p) {
+        if (p->visited){
+            return p->next[Direction::NONE];
+        }
+        p->visited = true;
+        if (p->wormhole) {
+            p->next[Direction::NONE] = p->wormhole;
+            return p->wormhole;
+        }
+        if (p->tunnel == Direction::NONE && !p->wormhole) {
+            p->next[Direction::NONE] = p;
+            return p;
+        }
+        vector<Point::Ptr> vec_p;
+        Point::Ptr next_p = p;
+        do {
+            vec_p.emplace_back(next_p);
+            next_p->visited = true;
+            next_p = around_with_meteor_one_step(next_p, next_p->tunnel);
+        } while (next_p->tunnel != Direction::NONE && !next_p->visited);
+        if (next_p->tunnel == Direction::NONE ||
+            around_with_meteor_one_step(next_p, next_p->tunnel) == next_p) {
+            for (Point::Ptr &q : vec_p) {
+                q->next[Direction::NONE] = next_p;
+            }
+            return next_p;
+        } else if (next_p->next[Direction::NONE] != next_p) {
+            for (Point::Ptr &q : vec_p) {
+                q->next[Direction::NONE] = next_p->next[Direction::NONE];
+            }
+            return next_p->next[Direction::NONE];
+        } else {
+            // TODO loop
         }
     }
 
+public:
     int width;
     int height;
     int vision;
