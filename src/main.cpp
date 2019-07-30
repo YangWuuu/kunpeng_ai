@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef OS_WINDOWS
-    // windows下，需要进行初始化操作
+    // windows init
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
     {
@@ -45,7 +45,6 @@ int main(int argc, char *argv[]) {
     send(hSocket, regMsgWithLength, (int) strlen(regMsgWithLength), 0);
     printf("register my info to server success\n");
 
-    /* 进入游戏 */
     while (true) {
         char buffer[99999] = {'\0'};
         if (recv(hSocket, buffer, sizeof(buffer) - 1, 0)) {

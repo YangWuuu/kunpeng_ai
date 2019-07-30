@@ -26,7 +26,6 @@ list(APPEND BT_SOURCE
         src/decorator_node.cpp
         src/condition_node.cpp
         src/control_node.cpp
-        src/shared_library.cpp
         src/tree_node.cpp
         src/xml_parsing.cpp
 
@@ -51,13 +50,6 @@ list(APPEND BT_SOURCE
         3rdparty/minitrace/minitrace.cpp
         )
 
-if (UNIX)
-    list(APPEND BT_SOURCE src/shared_library_UNIX.cpp)
-endif ()
-
-if (WIN32)
-    list(APPEND BT_SOURCE src/shared_library_WIN.cpp)
-endif ()
 include_directories(include 3rdparty)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 add_library(${BEHAVIOR_TREE_LIBRARY} STATIC ${BT_SOURCE})

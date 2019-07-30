@@ -119,6 +119,61 @@ public:
         }
     }
 
+    void parse_map(){
+        for (auto &col : maps){
+            
+        }
+    }
+    
+    Point::Ptr get_tunnel_direction_point(Point::Ptr){
+        
+    }
+
+    Point::Ptr get_direction_point(Point::Ptr p, Direction d){
+        Point::Ptr ret = p;
+        int x = p->x;
+        int y = p->y;
+        int next_x = x;
+        int next_y = y;
+        switch(d){
+            case Direction::UP:
+                if (y > 0)
+                    next_y --;
+                break;
+            case Direction::DOWN:
+                if (y < height - 1)
+                    next_y ++;
+                break;
+            case Direction::LEFT:
+                if (x > 0)
+                    next_x --;
+                break;
+            case Direction::RIGHT:
+                if (x < width - 1)
+                    next_x ++;
+                break;
+            case Direction::NONE:
+                //TODO wormhole
+                break;
+            default:
+                break;
+        }
+        if (maps[next_x][next_y]->meteor || x + y == next_x + next_y)
+            return p;
+        switch (maps[next_x][next_y]->direction){
+            case Direction::UP:
+            case Direction::DOWN:
+            case Direction::LEFT:
+            case Direction::RIGHT:
+
+                break;
+            case Direction::NONE:
+                break;
+            default:
+                break;
+        }
+    }
+
     int width;
     int height;
     int vision;
