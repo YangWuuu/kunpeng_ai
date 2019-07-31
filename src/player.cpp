@@ -1,5 +1,7 @@
 #include "player.h"
 
+#include <algorithm>
+
 #include "log.h"
 
 void Player::message_leg_start(cJSON *msg) {
@@ -26,7 +28,7 @@ void Player::message_leg_start(cJSON *msg) {
             cJSON *msg_y = cJSON_GetObjectItem(msg_meteor, "y");
             int x = msg_x->valueint;
             int y = msg_y->valueint;
-            leg.maps[x][y]->meteor = true;
+            leg.maps[x][y]->wall = true;
         }
     }
 
@@ -54,7 +56,33 @@ void Player::message_leg_start(cJSON *msg) {
         }
     }
 
-    //TODO wormhole
+    cJSON *msg_wormholes = cJSON_GetObjectItem(msg_maps, "wormhole");
+    if (msg_wormholes != nullptr) {
+        map<string, vector<Point::Ptr>> wormholes;
+        for (int i = 0; i < cJSON_GetArraySize(msg_wormholes); i++) {
+            cJSON *msg_wormhole = cJSON_GetArrayItem(msg_wormholes, i);
+            cJSON *msg_name = cJSON_GetObjectItem(msg_wormhole, "name");
+            cJSON *msg_x = cJSON_GetObjectItem(msg_wormhole, "x");
+            cJSON *msg_y = cJSON_GetObjectItem(msg_wormhole, "y");
+            string name = msg_name->valuestring;
+            int x = msg_x->valueint;
+            int y = msg_y->valueint;
+            transform(name.begin(), name.end(), name.begin(), ::tolower);
+            if (wormholes.count(name) == 0) {
+                wormholes[name] = vector<Point::Ptr>();
+            }
+            leg.maps[x][y]->name = name;
+            wormholes[name].emplace_back(leg.maps[x][y]);
+        }
+        for (auto &w : wormholes) {
+            if (w.second.size() != 2) {
+                log_error("wormholes error %s", w.first.c_str());
+            } else {
+                w.second[0]->wormhole = w.second[1];
+                w.second[1]->wormhole = w.second[0];
+            }
+        }
+    }
 
     cJSON *msg_teams = cJSON_GetObjectItem(msg_data, "teams");
     if (msg_teams == nullptr) {
@@ -85,6 +113,7 @@ void Player::message_leg_start(cJSON *msg) {
         }
     }
 
+    leg.construct_map();
 }
 
 void Player::message_leg_end(cJSON *msg) {
@@ -157,7 +186,7 @@ string Player::message_round(cJSON *msg) {
         tree.root_node->executeTick();
 //        mu.second->direction = (Direction) (uniform_int_distribution<int>(0, 4)(e));
     }
-
+    show_map();
     return pack_msg();
 }
 
@@ -202,4 +231,61 @@ string Player::pack_msg() {
     sprintf(act_msg, "%05d%s", (int) strlen(msg), msg);
     free(msg);
     return string(act_msg);
+}
+
+void Player::show_map() {
+//    0: black
+//    1: red
+//    2: green
+//    3: yellow
+//    4: blue
+//    5: purple
+//    6: dark green
+//    7: white
+//    4: back color  3: front color
+    auto format = [](const string &fmt, const string& s) -> string {
+        char tmp[1024];
+        sprintf(tmp, fmt.c_str(), s.c_str());
+        return string(tmp);
+    };
+    string fmt_map = "\x1b[47;30m %s\x1b[0m";
+    string fmt_power = "\x1b[43;37m %s\x1b[0m";
+    string fmt_enemy = "\x1b[41;37me%s\x1b[5m";
+    string fmt_my = "\x1b[42;37mm%s\x1b[5m";
+    string fmt_wall = "\x1b[40;30m  \x1b[0m";
+    string fmt_tunnel = "\x1b[46;35m %s\x1b[0m";
+    string fmt_wormhole = "\x1b[44;35m %s\x1b[0m";
+    vector<vector<string>> map_string(leg.height, vector<string>(leg.width, format(fmt_map, ".")));
+    for (auto &power : ri.powers) {
+        map_string[power.loc->x][power.loc->y] = format(fmt_power, to_string(power.point));
+    }
+    for (int h = 0; h < leg.height; h++) {
+        for (int w = 0; w < leg.width; w++) {
+            if (leg.maps[w][h]->wall){
+                map_string[w][h] = fmt_wall;
+            } else if (leg.maps[w][h]->tunnel == Direction::UP) {
+                map_string[w][h] = format(fmt_tunnel, "^");
+            } else if (leg.maps[w][h]->tunnel == Direction::DOWN) {
+                map_string[w][h] = format(fmt_tunnel, "v");
+            } else if (leg.maps[w][h]->tunnel == Direction::LEFT) {
+                map_string[w][h] = format(fmt_tunnel, "<");
+            } else if (leg.maps[w][h]->tunnel == Direction::RIGHT) {
+                map_string[w][h] = format(fmt_tunnel, ">");
+            } else if (leg.maps[w][h]->wormhole) {
+                map_string[w][h] = format(fmt_wormhole, leg.maps[w][h]->name);
+            }
+        }
+    }
+    for (auto &u : ri.enemy_units) {
+        map_string[u.second->loc->x][u.second->loc->y] = format(fmt_enemy, to_string(u.first));
+    }
+    for (auto &u : ri.my_units) {
+        map_string[u.second->loc->x][u.second->loc->y] = format(fmt_my, to_string(u.first));
+    }
+    for (int h = 0; h < leg.height; h++) {
+        for (int w = 0; w < leg.width; w++) {
+            printf("%s", map_string[w][h].c_str());
+        }
+        printf("\x1b[0;0m\n\x1b[0m");
+    }
 }

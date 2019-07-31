@@ -30,7 +30,7 @@ public:
         return abs(p1->x - p2->x) + abs(p1->y - p2->y);
     }
 
-    explicit Point(int _x, int _y) : x(_x), y(_y), tunnel(Direction::NONE), meteor(false), wormhole(nullptr),
+    explicit Point(int _x, int _y) : x(_x), y(_y), tunnel(Direction::NONE), wall(false), wormhole(nullptr),
                                      visited(false) {
         next[Direction::UP] = nullptr;
         next[Direction::DOWN] = nullptr;
@@ -43,12 +43,14 @@ public:
     int x;
     int y;
     Direction tunnel;
-    bool meteor;
+    bool wall;
     Ptr wormhole;
     map<Direction, Ptr> next;
 
     // check loop
     bool visited;
+    //print
+    string name;
 };
 
 class Unit {
@@ -129,11 +131,19 @@ public:
         }
     }
 
-    void parse_map() {
+    void construct_map() {
         for (auto &col : maps) {
             for (auto &r : col.second) {
                 Point::Ptr &p = r.second;
                 p->next[Direction::NONE] = find_next_point_with_no_move(p);
+            }
+        }
+        for (auto &col : maps) {
+            for (auto &r : col.second) {
+                Point::Ptr &p = r.second;
+                for (Direction d : {Direction::UP, Direction::DOWN, Direction::LEFT, Direction::RIGHT}){
+                    p->next[d] = around_with_meteor_one_step(p, d)->next[Direction::NONE];
+                }
             }
         }
     }
@@ -165,7 +175,7 @@ public:
             default:
                 break;
         }
-        if (maps[next_x][next_y]->meteor || x + y == next_x + next_y)
+        if (maps[next_x][next_y]->wall || x + y == next_x + next_y)
             return p;
         return maps[next_x][next_y];
     }

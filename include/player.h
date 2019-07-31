@@ -40,7 +40,7 @@ public:
         tree = factory.createTreeFromText(xml_text, blackboard);
         if (debug) {
             printTreeRecursively(tree.root_node);
-            logger_cout.setTree(tree);
+//            logger_cout.setTree(tree);
             logger_file.setTree(tree, "bt_trace.fbl");
         }
     }
@@ -53,6 +53,8 @@ public:
     void message_leg_end(cJSON *msg);
 
     string message_round(cJSON *msg);
+
+    void show_map();
 
 private:
     string pack_msg();
