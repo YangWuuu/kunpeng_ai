@@ -181,12 +181,35 @@ string Player::message_round(cJSON *msg) {
         }
     }
 
+    show_map();
     for (auto &mu : ri.my_units) {
         blackboard->set("mu", mu.first);
         tree.root_node->executeTick();
 //        mu.second->direction = (Direction) (uniform_int_distribution<int>(0, 4)(e));
     }
-    show_map();
+//    if (ri.my_units.count(leg.my_team.units[0]) != 0){
+//        char input;
+//        scanf("%c%*c", &input);
+//        auto my_first_unit = ri.my_units[leg.my_team.units[0]];
+//        switch(input){
+//            case 'w':
+//                my_first_unit->direction = Direction::UP;
+//                break;
+//            case 's':
+//                my_first_unit->direction = Direction::DOWN;
+//                break;
+//            case 'a':
+//                my_first_unit->direction = Direction::LEFT;
+//                break;
+//            case 'd':
+//                my_first_unit->direction = Direction::RIGHT;
+//                break;
+//            default:
+//                my_first_unit->direction = Direction::NONE;
+//                break;
+//        }
+//    }
+
     return pack_msg();
 }
 
@@ -243,18 +266,36 @@ void Player::show_map() {
 //    6: dark green
 //    7: white
 //    4: back color  3: front color
+
+    if (debug){
+        printf("\033[47m\033[2J"); // clear console
+    }
     auto format = [](const string &fmt, const string& s) -> string {
         char tmp[1024];
         sprintf(tmp, fmt.c_str(), s.c_str());
         return string(tmp);
     };
     string fmt_map = "\x1b[47;30m %s\x1b[0m";
-    string fmt_power = "\x1b[43;37m %s\x1b[0m";
-    string fmt_enemy = "\x1b[41;37me%s\x1b[5m";
-    string fmt_my = "\x1b[42;37mm%s\x1b[5m";
+    string fmt_power = "\x1b[45;30m$%s\x1b[0m";
+    string fmt_enemy = "\x1b[41;37me%s\x1b[0m";
+    string fmt_my = "\x1b[42;37mm%s\x1b[0m";
     string fmt_wall = "\x1b[40;30m  \x1b[0m";
     string fmt_tunnel = "\x1b[46;35m %s\x1b[0m";
     string fmt_wormhole = "\x1b[44;35m %s\x1b[0m";
+    printf("\x1b[47;30m\n\nround_id: %d  mode: %s\n\n\x1b[0m", ri.round_id, ri.mode.c_str());
+    auto print_team_info = [&](const Team &team, const string &fmt, int point, int remain_life){
+        printf("\x1b[%sid: %d  point: %d  remain_life: %d force: %s\n\x1b[0m", fmt.c_str(), team.id, point, remain_life, team.force.c_str());
+        auto map_units = &ri.my_units;
+        if (team.id != team_id)
+            map_units = &ri.enemy_units;
+        for (auto &mu : *map_units){
+            auto &u = mu.second;
+            printf("\x1b[%s    %d  score: %d  sleep: %d\n\x1b[0m", fmt.c_str(), u->id, u->score, u->sleep);
+        }
+    };
+    print_team_info(leg.my_team, "42;37m", ri.my_point, ri.my_remain_life);
+    print_team_info(leg.enemy_team, "41;37m", ri.enemy_point, ri.enemy_remain_life);
+
     vector<vector<string>> map_string(leg.height, vector<string>(leg.width, format(fmt_map, ".")));
     for (auto &power : ri.powers) {
         map_string[power.loc->x][power.loc->y] = format(fmt_power, to_string(power.point));
@@ -282,10 +323,12 @@ void Player::show_map() {
     for (auto &u : ri.my_units) {
         map_string[u.second->loc->x][u.second->loc->y] = format(fmt_my, to_string(u.first));
     }
-    for (int h = 0; h < leg.height; h++) {
-        for (int w = 0; w < leg.width; w++) {
-            printf("%s", map_string[w][h].c_str());
+    if (debug) {
+        for (int h = 0; h < leg.height; h++) {
+            for (int w = 0; w < leg.width; w++) {
+                printf("%s", map_string[w][h].c_str());
+            }
+            printf("\x1b[0;0m\n\x1b[0m");
         }
-        printf("\x1b[0;0m\n\x1b[0m");
     }
 }

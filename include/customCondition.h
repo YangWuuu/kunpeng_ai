@@ -28,7 +28,7 @@ public:
                 nearest = eu.second->loc;
             }
         }
-        if (min_distance <= 2) {
+        if (min_distance <= 3) {
             return BT::NodeStatus::SUCCESS;
         } else {
             return BT::NodeStatus::FAILURE;

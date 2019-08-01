@@ -49,7 +49,8 @@ int main(int argc, char *argv[]) {
         char buffer[99999] = {'\0'};
         if (recv(hSocket, buffer, sizeof(buffer) - 1, 0)) {
             cJSON *msgBuf = cJSON_Parse(buffer + 5);
-            printf("%s\n", buffer + 5);
+//            printf("%s\n", buffer + 5);
+
             if (nullptr == msgBuf)
                 continue;
             cJSON *msgNamePtr = cJSON_GetObjectItem(msgBuf, "msg_name");
@@ -58,7 +59,7 @@ int main(int argc, char *argv[]) {
             char *msgName = msgNamePtr->valuestring;
             if (0 == strcmp(msgName, "round")) {
                 string ret = player.message_round(msgBuf);
-                printf("\nSendActMsg:%s\n", ret.c_str());
+//                printf("\nSendActMsg:%s\n", ret.c_str());
                 send(hSocket, ret.c_str(), ret.size(), 0);
             } else if (0 == strcmp(msgName, "leg_start")) {
                 player.message_leg_start(msgBuf);
