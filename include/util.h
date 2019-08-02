@@ -78,9 +78,7 @@ public:
 
 class Power {
 public:
-    Power(int _point, Point::Ptr _loc) : point(_point) {
-        loc = move(_loc);
-    }
+    Power(int _point, Point::Ptr &_loc) : point(_point), loc(_loc) {}
 
 public:
     int point;
@@ -141,7 +139,7 @@ public:
         for (auto &col : maps) {
             for (auto &r : col.second) {
                 Point::Ptr &p = r.second;
-                for (Direction d : {Direction::UP, Direction::DOWN, Direction::LEFT, Direction::RIGHT}){
+                for (Direction d : {Direction::UP, Direction::DOWN, Direction::LEFT, Direction::RIGHT}) {
                     p->next[d] = around_with_meteor_one_step(p, d)->next[Direction::NONE];
                 }
             }
@@ -181,7 +179,7 @@ public:
     }
 
     Point::Ptr find_next_point_with_no_move(const Point::Ptr &p) {
-        if (p->visited){
+        if (p->visited) {
             return p->next[Direction::NONE];
         }
         p->visited = true;

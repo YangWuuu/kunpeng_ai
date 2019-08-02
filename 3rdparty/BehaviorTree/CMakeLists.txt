@@ -50,6 +50,8 @@ list(APPEND BT_SOURCE
         3rdparty/minitrace/minitrace.cpp
         )
 
+SET(CMAKE_BUILD_TYPE "release")
+
 include_directories(include 3rdparty)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 add_library(${BEHAVIOR_TREE_LIBRARY} STATIC ${BT_SOURCE})

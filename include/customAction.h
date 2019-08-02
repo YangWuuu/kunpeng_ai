@@ -97,7 +97,7 @@ public:
         }
         Direction best_direction = Direction::NONE;
         int min_center_distance = 0xffff;
-        Point::Ptr center_point = leg_p->maps[leg_p->height / 2][leg_p->width / 2];
+        Point::Ptr &center_point = leg_p->maps[leg_p->height / 2][leg_p->width / 2];
         for (Direction direction : choice_d) {
             int d = Point::distance(center_point, unit->loc->next[direction]);
             if (d < min_center_distance) {

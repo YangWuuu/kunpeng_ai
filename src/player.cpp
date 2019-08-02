@@ -181,7 +181,7 @@ string Player::message_round(cJSON *msg) {
         }
     }
 
-    show_map();
+    //show_map();
     for (auto &mu : ri.my_units) {
         blackboard->set("mu", mu.first);
         tree.root_node->executeTick();
@@ -284,13 +284,15 @@ void Player::show_map() {
     string fmt_wormhole = "\x1b[44;35m %s\x1b[0m";
     printf("\x1b[47;30m\n\nround_id: %d  mode: %s\n\n\x1b[0m", ri.round_id, ri.mode.c_str());
     auto print_team_info = [&](const Team &team, const string &fmt, int point, int remain_life){
-        printf("\x1b[%sid: %d  point: %d  remain_life: %d force: %s\n\x1b[0m", fmt.c_str(), team.id, point, remain_life, team.force.c_str());
+        printf("\x1b[%sid: %d  point: %d  remain_life: %d force: %s\x1b[0m", fmt.c_str(), team.id, point, remain_life, team.force.c_str());
+        printf("\x1b[0;0m\n\x1b[0m");
         auto map_units = &ri.my_units;
         if (team.id != team_id)
             map_units = &ri.enemy_units;
         for (auto &mu : *map_units){
             auto &u = mu.second;
-            printf("\x1b[%s    %d  score: %d  sleep: %d\n\x1b[0m", fmt.c_str(), u->id, u->score, u->sleep);
+            printf("\x1b[%s    %d  score: %d  sleep: %d  x: %2d y:%2d\x1b[0m", fmt.c_str(), u->id, u->score, u->sleep, u->loc->x, u->loc->y);
+            printf("\x1b[0;0m\n\x1b[0m");
         }
     };
     print_team_info(leg.my_team, "42;37m", ri.my_point, ri.my_remain_life);

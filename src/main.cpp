@@ -45,11 +45,13 @@ int main(int argc, char *argv[]) {
     send(hSocket, regMsgWithLength, (int) strlen(regMsgWithLength), 0);
     printf("register my info to server success\n");
 
+    vector<int> time_vec;
     while (true) {
         char buffer[99999] = {'\0'};
         if (recv(hSocket, buffer, sizeof(buffer) - 1, 0)) {
+            auto start_time = chrono::system_clock::now();
             cJSON *msgBuf = cJSON_Parse(buffer + 5);
-//            printf("%s\n", buffer + 5);
+            //printf("%s\n", buffer + 5);
 
             if (nullptr == msgBuf)
                 continue;
@@ -59,7 +61,7 @@ int main(int argc, char *argv[]) {
             char *msgName = msgNamePtr->valuestring;
             if (0 == strcmp(msgName, "round")) {
                 string ret = player.message_round(msgBuf);
-//                printf("\nSendActMsg:%s\n", ret.c_str());
+                //printf("\nSendActMsg: %s\n", ret.c_str());
                 send(hSocket, ret.c_str(), ret.size(), 0);
             } else if (0 == strcmp(msgName, "leg_start")) {
                 player.message_leg_start(msgBuf);
@@ -68,11 +70,17 @@ int main(int argc, char *argv[]) {
             } else if (0 == strcmp(msgName, "game_over")) {
                 break;
             }
+            auto end_time = chrono::system_clock::now();
+            auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
+            time_vec.push_back((int)duration.count());
+            if (duration.count() > 300) {
+                printf("%s\n", buffer + 5);
+            }
+            printf("time cost: %ld ms\n", duration.count());
         }
     }
-
+    printf("max single time is %d\n", *max_element(time_vec.begin(), time_vec.end()));
     OSCloseSocket(hSocket);
-
     return 0;
 }
 
