@@ -47,17 +47,15 @@ public:
 
     ~Player() = default;
 
-
     void message_leg_start(cJSON *msg);
-
     void message_leg_end(cJSON *msg);
-
     string message_round(cJSON *msg);
 
-    void show_map();
-
 private:
+    void parse_message_leg_start(cJSON *msg);
+    void parse_message_round(cJSON *msg);
     string pack_msg();
+    void show_map();
 
 private:
     BT::Tree tree;
@@ -72,6 +70,4 @@ private:
     BT::StdCoutLogger logger_cout;
     BT::FileLogger logger_file;
 };
-
-
 #endif //AI_YANG_PLAYER_H

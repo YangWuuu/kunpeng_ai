@@ -2,6 +2,7 @@
 #define AI_YANG_UTIL_H
 
 #include <map>
+#include <string>
 #include <memory>
 #include <vector>
 #include <random>
@@ -9,6 +10,23 @@
 using namespace std;
 
 static default_random_engine e(2019);
+
+inline vector<string> string_split(const string &s, const string &c) {
+    vector<string> v;
+    string::size_type pos1, pos2;
+    size_t len = s.length();
+    pos2 = s.find(c);
+    pos1 = 0;
+    while (std::string::npos != pos2) {
+        v.emplace_back(s.substr(pos1, pos2 - pos1));
+
+        pos1 = pos2 + c.size();
+        pos2 = s.find(c, pos1);
+    }
+    if (pos1 != len)
+        v.emplace_back(s.substr(pos1));
+    return v;
+}
 
 enum Direction {
     UP,

@@ -107,7 +107,7 @@ int OSMakeAddrByString(int nAf, const char *szAddr, unsigned short nPort, OS_ADD
 *	@param	-I	 - unsigned int nLen        长度
 *	@return int                             返回发送的长度
 */
-int OSSend(OS_SOCKET hSocket, char *pBuf, unsigned int nLen);
+int OSSend(OS_SOCKET hSocket, const char *pBuf, unsigned int nLen);
 
 /** @fn		int OSRecv(OS_SOCKET hSocket, char *pBuf, int nLen)
 *  @brief	接受数据

@@ -3,7 +3,8 @@
 #include "stdio.h"
 
 
-#define  LOG_ERROR printf
+//#define  LOG_ERROR printf
+#define  LOG_ERROR(...)
 #if defined (OS_WINDOWS)
 
 /** @fn		OS_SOCKET OSOpenSocket(int nAf, int nType, int nProto)
@@ -241,7 +242,7 @@ int OSMakeAddrByString(int nAf, const char *szAddr, unsigned short nPort, OS_ADD
  *	@param	-I	 - unsigned int nLen        长度
  *	@return int                             返回发送的长度
  */
-int OSSend(OS_SOCKET hSocket, char *pBuf, unsigned int nLen) {
+int OSSend(OS_SOCKET hSocket, const char *pBuf, unsigned int nLen) {
     unsigned int nSendLen = 0;
     int nRet = 0;
 
