@@ -39,7 +39,7 @@ public:
 
         tree = factory.createTreeFromText(xml_text, blackboard);
         if (debug) {
-            printTreeRecursively(tree.root_node);
+//            printTreeRecursively(tree.root_node);
 //            logger_cout.setTree(tree);
             logger_file.setTree(tree, "bt_trace.fbl");
         }
@@ -57,11 +57,12 @@ private:
     string pack_msg();
     void show_map();
 
+public:
+    LegStartInfo leg;
+    RoundInfo ri;
 private:
     BT::Tree tree;
     BT::Blackboard::Ptr blackboard;
-    LegStartInfo leg;
-    RoundInfo ri;
 
     int team_id;
     string team_name;

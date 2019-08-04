@@ -137,7 +137,7 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
             va_list args;
             char buf[32];
             buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", lt)] = '\0';
-            fprintf(L.fp, "%s %-5s %s:%d: ", buf, level_names[level], file, line);
+            fprintf(L.fp, "%s %-5s (ts: %.6lf) %s:%d: ", buf, level_names[level], duration_cast<nanoseconds>(clock_now.time_since_epoch()).count() / 1000000000.0, file, line);
             va_start(args, fmt);
             vfprintf(L.fp, fmt, args);
             va_end(args);

@@ -16,6 +16,12 @@ int main(int argc, char *argv[]) {
         log_error("Usage: %s [player_id] [serverIp] [serverPort]\n", argv[0]);
         return -1;
     }
+    bool debug = argc > 4 && string(argv[4]) == "debug";
+    FILE *fp = fopen("/var/log/log.txt", "w");
+    log_set_fp(fp);
+    if (!debug) {
+        log_set_quiet(true);
+    }
 
 #ifdef OS_WINDOWS
     // windows init
@@ -37,8 +43,7 @@ int main(int argc, char *argv[]) {
     log_info("connect server success\n");
 
     int myTeamId = std::stoi(argv[1]);
-
-    Player player(myTeamId, "ai_yang", argc > 4 && string(argv[4]) == "debug");
+    Player player(myTeamId, "ai_yang", debug);
     /* Ïòserver×¢²á */
     char regMsg[200] = {'\0'};
     sprintf(regMsg, R"({"msg_name":"registration","msg_data":{"team_id":%d,"team_name":"ai_yang"}})", myTeamId);
@@ -64,26 +69,29 @@ int main(int argc, char *argv[]) {
             if (0 == strcmp(msgName, "round")) {
                 string ret = player.message_round(msgBuf);
                 send(hSocket, ret.c_str(), ret.size(), 0);
-                log_info("SendActMsg: %s", ret.c_str());
+                log_info("round_id: %d  SendActMsg: %s", player.ri.round_id, ret.c_str());
             } else if (0 == strcmp(msgName, "leg_start")) {
                 player.message_leg_start(msgBuf);
-                log_info("leg_start\n");
+                log_info("leg_start");
             } else if (0 == strcmp(msgName, "leg_end")) {
                 player.message_leg_end(msgBuf);
-                log_info("leg_end\n");
+                log_info("leg_end");
             } else if (0 == strcmp(msgName, "game_over")) {
-                log_info("game_over\n");
+                log_info("game_over");
                 break;
             } else {
-                log_error("others\n");
+                log_error("others");
             }
             auto end_time = chrono::system_clock::now();
             auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
-            time_vec.push_back((int)duration.count());
-            log_info("time cost: %ld ms\n\n\n\n", duration.count());
+            time_vec.push_back((int) duration.count());
+            log_info("time cost: %ld ms\n\n", duration.count());
         }
     }
-    log_info("max single time is %d\n", *max_element(time_vec.begin(), time_vec.end()));
+    log_info("max single time is %d", *max_element(time_vec.begin(), time_vec.end()));
     OSCloseSocket(hSocket);
+    if (fp) {
+        fclose(fp);
+    }
     return 0;
 }
