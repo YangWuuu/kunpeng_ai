@@ -28,6 +28,16 @@ inline vector<string> string_split(const string &s, const string &c) {
     return v;
 }
 
+inline vector<pair<int, int>> getVisionGrids(int x, int y, int width, int height, int vision) {
+    vector<pair<int, int>> ret;
+    for (int i = max(x - vision, 0); i <= min(x + vision, width - 1); i++) {
+        for (int j = max(y - vision, 0); j <= min(y + vision, height - 1); j++) {
+            ret.emplace_back(make_pair(i, j));
+        }
+    }
+    return ret;
+};
+
 enum Direction {
     UP,
     DOWN,
@@ -158,7 +168,11 @@ public:
             for (auto &r : col.second) {
                 Point::Ptr &p = r.second;
                 for (Direction d : {Direction::UP, Direction::DOWN, Direction::LEFT, Direction::RIGHT}) {
-                    p->next[d] = around_with_meteor_one_step(p, d)->next[Direction::NONE];
+                    Point::Ptr next_p = around_with_meteor_one_step(p, d);
+                    p->next[d] = next_p->next[Direction::NONE];
+                    if (p != next_p && next_p->wormhole) {
+                        p->next[d] = next_p->wormhole;
+                    }
                 }
             }
         }
@@ -201,11 +215,7 @@ public:
             return p->next[Direction::NONE];
         }
         p->visited = true;
-        if (p->wormhole) {
-            p->next[Direction::NONE] = p->wormhole;
-            return p->wormhole;
-        }
-        if (p->tunnel == Direction::NONE && !p->wormhole) {
+        if (p->tunnel == Direction::NONE) {
             p->next[Direction::NONE] = p;
             return p;
         }
