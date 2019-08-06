@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     bool debug = argc > 4 && string(argv[4]) == "debug";
-    FILE *fp = fopen("/var/log/log.txt", "w");
+    FILE *fp = fopen("/var/log/battle.log", "w");
     log_set_fp(fp);
     if (!debug) {
         log_set_quiet(true);

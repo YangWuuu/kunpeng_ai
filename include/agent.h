@@ -10,8 +10,8 @@ using namespace std;
 
 class Agent {
 public:
-    map<int, Direction> getActions(GameState *gameState);
-    Direction getAction(int agent_id, GameState *gameState);
+    static map<int, Direction> getActions(const shared_ptr<GameState>& gameState);
+    static Direction getAction(int agent_id, const shared_ptr<GameState>& gameState, int depth);
 public:
 };
 

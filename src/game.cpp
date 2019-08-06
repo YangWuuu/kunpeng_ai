@@ -1,6 +1,5 @@
 #include "game.h"
 
-
 void GameState::updateRoundInfo(RoundInfo &ri) {
     round_id = ri.round_id;
     isEat = ri.mode == leg->my_team.force;
@@ -17,17 +16,17 @@ void GameState::updateRoundInfo(RoundInfo &ri) {
     }
     for (int i = 0; i < leg->width; i++) {
         for (int j = 0; j < leg->height; j++) {
-            background_score[i][j] = background_score_limit[i][j] / 10 * (round_id - visit_time[i][j]) ;
+            background_score[i][j] = background_score_limit[i][j] / 30 * (round_id + 1 - visit_time[i][j]) ;
+        }
+    }
+    for (auto &unit : my_units) {
+        for (const auto &xy : getVisionGrids(unit.second->loc->x, unit.second->loc->y, leg->width, leg->height, leg->vision)) {
+            power_score[xy.first][xy.second] = 0.0;
         }
     }
     for (auto &power : ri.powers) {
         background_score_limit[power.loc->x][power.loc->y] = power.point;
         power_score[power.loc->x][power.loc->y] = power.point;
-    }
-    for (auto &unit : my_units) {
-        for (const auto &xy : getVisionGrids(unit.second->loc->x, unit.second->loc->y, leg->width, leg->height, leg->vision)) {
-            //TODO clean eated power
-        }
     }
 }
 
@@ -48,14 +47,24 @@ vector<Direction> GameState::getLegalActions(int agent_id) {
     return actions;
 }
 
-GameState* GameState::generateSuccessor(int agent_id, Direction action) {
-    auto newGameState = new GameState(this);
+shared_ptr<GameState> GameState::generateSuccessor(int agent_id, Direction action) {
+    auto newGameState = make_shared<GameState>(shared_from_this());
+    newGameState->round_id++;
     auto &unit = newGameState->my_units[agent_id];
     unit->loc = unit->loc->next[action];
-    for (auto &xy : getVisionGrids(unit->loc->x, unit->loc->y, leg->width, leg->height, leg->vision)) {
-        total_score += min(background_score[xy.first][xy.second], background_score_limit[xy.first][xy.second]);
-        background_score[xy.first][xy.second] = 0;
-        visit_time[xy.first][xy.second] = round_id;
+    for (auto &xy : getVisionGrids(unit->loc->x, unit->loc->y, newGameState->leg->width, newGameState->leg->height, newGameState->leg->vision)) {
+        newGameState->total_score += min(newGameState->background_score[xy.first][xy.second], newGameState->background_score_limit[xy.first][xy.second]);
+        newGameState->background_score[xy.first][xy.second] = 0;
+        newGameState->visit_time[xy.first][xy.second] = newGameState->round_id;
+    }
+    newGameState->total_score += newGameState->power_score[unit->loc->x][unit->loc->y];
+    newGameState->power_score[unit->loc->x][unit->loc->y] = 0;
+    if (!newGameState->isEat) {
+        for (auto &eu : newGameState->enemy_units) {
+            if (Point::distance(eu.second->loc, unit->loc) <= 1){  //TODO
+                newGameState->total_score -= unit->score;
+            }
+        }
     }
     return newGameState;
 }

@@ -7,9 +7,10 @@
 
 using namespace std;
 
-class GameState {
+class GameState : public enable_shared_from_this<GameState>
+{
 public:
-    GameState(LegStartInfo *_leg, RoundInfo *_ri) : leg(_leg), round_id(0), isEat(false), total_score(0.0) {
+    GameState(LegStartInfo *_leg) : leg(_leg), round_id(0), isEat(false), total_score(0.0) {
         power_score = vector<vector<double>>(leg->width, vector<double>(leg->height, 0.0));
         background_score_limit = vector<vector<double>>(leg->width, vector<double>(leg->height, 0.0));
         visit_time = vector<vector<int>>(leg->width, vector<int>(leg->height, 0));
@@ -24,7 +25,7 @@ public:
         background_score = background_score_limit;
     }
 
-    explicit GameState(GameState *_prev_state) : leg(_prev_state->leg), round_id(_prev_state->round_id),
+    explicit GameState(const shared_ptr<GameState>& _prev_state) : leg(_prev_state->leg), round_id(_prev_state->round_id),
                                                  isEat(_prev_state->isEat), total_score(_prev_state->total_score) {
         power_score = _prev_state->power_score;
         background_score = _prev_state->background_score;
@@ -46,9 +47,9 @@ public:
 
     vector<Direction> getLegalActions(int agent_id);
 
-    GameState *generateSuccessor(int agent_id, Direction action);
+    shared_ptr<GameState> generateSuccessor(int agent_id, Direction action);
 
-    GameState *generateEnemySuccessor(int agent_id, Direction action);
+    shared_ptr<GameState> generateEnemySuccessor(int agent_id, Direction action);
 
 public:
     LegStartInfo *leg;
@@ -61,7 +62,6 @@ public:
     vector<vector<double>> background_score;
     vector<vector<double>> background_score_limit;
     vector<vector<int>> visit_time;
-
 };
 
 #endif //AI_YANG_GAME_H

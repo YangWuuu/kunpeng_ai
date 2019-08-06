@@ -3,10 +3,12 @@
 #include <algorithm>
 
 #include "log.h"
+#include "agent.h"
 
 void Player::message_leg_start(cJSON *msg) {
     parse_message_leg_start(msg);
     leg.construct_map();
+    gameState = make_shared<GameState>(&leg);
 }
 
 void Player::message_leg_end(cJSON *msg) {
@@ -17,11 +19,18 @@ string Player::message_round(cJSON *msg) {
     parse_message_round(msg);
 
     //show_map();
-    for (auto &mu : ri.my_units) {
-        blackboard->set("mu", mu.first);
-        tree.root_node->executeTick();
-//        mu.second->direction = (Direction) (uniform_int_distribution<int>(0, 4)(e));
+    gameState->updateRoundInfo(ri);
+    auto directions = Agent::getActions(gameState);
+    for (auto &d : directions) {
+        ri.my_units[d.first]->direction = d.second;
+        gameState = gameState->generateSuccessor(d.first, d.second);
     }
+//    for (auto &mu : ri.my_units) {
+//        blackboard->set("mu", mu.first);
+//        tree.root_node->executeTick();
+////        mu.second->direction = (Direction) (uniform_int_distribution<int>(0, 4)(e));
+//    }
+
 //    if (ri.my_units.count(leg.my_team.units[0]) != 0){
 //        char input;
 //        scanf("%c%*c", &input);

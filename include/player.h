@@ -14,8 +14,8 @@
 #include "behaviortree_cpp/loggers/bt_cout_logger.h"
 #include "customAction.h"
 #include "customCondition.h"
-
 #include "xml_tree.h"
+#include "game.h"
 
 using namespace std;
 
@@ -60,6 +60,7 @@ private:
 public:
     LegStartInfo leg;
     RoundInfo ri;
+    shared_ptr<GameState> gameState;
 private:
     BT::Tree tree;
     BT::Blackboard::Ptr blackboard;
