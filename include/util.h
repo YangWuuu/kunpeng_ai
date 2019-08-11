@@ -38,7 +38,14 @@ inline vector<pair<int, int>> getVisionGrids(int x, int y, int width, int height
     return ret;
 };
 
-enum Direction {
+enum TASK_NAME {
+    TaskEatEnemy,
+    TaskExploreMap,
+    TaskEatPower,
+    TaskRunAway,
+};
+
+enum DIRECTION {
     UP,
     DOWN,
     LEFT,
@@ -58,22 +65,26 @@ public:
         return abs(p1->x - p2->x) + abs(p1->y - p2->y);
     }
 
-    explicit Point(int _x, int _y) : x(_x), y(_y), tunnel(Direction::NONE), wall(false), wormhole(nullptr),
+    static int max_xy(const Ptr &p1, const Ptr &p2) {
+        return max(abs(p1->x - p2->x), abs(p1->y - p2->y));
+    }
+
+    explicit Point(int _x, int _y) : x(_x), y(_y), tunnel(DIRECTION::NONE), wall(false), wormhole(nullptr),
                                      visited(false) {
-        next[Direction::UP] = nullptr;
-        next[Direction::DOWN] = nullptr;
-        next[Direction::LEFT] = nullptr;
-        next[Direction::RIGHT] = nullptr;
-        next[Direction::NONE] = nullptr;
+        next[DIRECTION::UP] = nullptr;
+        next[DIRECTION::DOWN] = nullptr;
+        next[DIRECTION::LEFT] = nullptr;
+        next[DIRECTION::RIGHT] = nullptr;
+        next[DIRECTION::NONE] = nullptr;
     }
 
 public:
     int x;
     int y;
-    Direction tunnel;
+    DIRECTION tunnel;
     bool wall;
     Ptr wormhole;
-    map<Direction, Ptr> next;
+    map<DIRECTION, Ptr> next;
 
     // check loop
     bool visited;
@@ -91,7 +102,7 @@ public:
 
     Unit(int _id, int _score, int _sleep, int _team, Point::Ptr _loc) :
             id(_id), score(_score), sleep(_sleep), team(_team) {
-        direction = Direction::NONE;
+        direction = DIRECTION::NONE;
         loc = move(_loc);
     }
 
@@ -100,7 +111,7 @@ public:
     int score;
     int sleep;
     int team;
-    Direction direction;
+    DIRECTION direction;
     Point::Ptr loc;
 };
 
@@ -121,6 +132,84 @@ public:
     int id;
     string force;
     vector<int> units;
+};
+
+class Path {
+public:
+    void setMap(map<int, map<int, Point::Ptr>> *_maps, int _width, int _height) {
+        maps = _maps;
+        width = _width;
+        height = _height;
+        node_num = width * height;
+        path = vector<vector<int>>(node_num, vector<int>(node_num, 0));
+        for (int i = 0; i < node_num; i++) {
+            for (int j = 0; j < node_num; j++) {
+                path[i][j] = j;
+            }
+        }
+        G = vector<vector<int>>(node_num, vector<int>(node_num, inf));
+        for (int i = 0; i < node_num; i++) {
+            for (auto &dp : to_point(i)->next) {
+                int j = to_index(dp.second);
+                if (i != j) {
+                    G[i][j] = 1;
+                } else if (i == j) {
+                    G[i][j] = 0;
+                }
+            }
+        }
+        dist = G;
+        Floyd();
+    }
+
+    int get_cost(const Point::Ptr &start, const Point::Ptr &end) {
+        return dist[to_index(start)][to_index(end)];
+    }
+
+    DIRECTION find_next_direction(const Point::Ptr &start, const Point::Ptr &end) {
+        DIRECTION ret = DIRECTION::NONE;
+        int i = to_index(start);
+        int j = to_index(end);
+        for (auto &dp : start->next) {
+            if (dp.second == to_point(path[i][j])) {
+                ret = dp.first;
+                break;
+            }
+        }
+        return ret;
+    }
+
+private:
+    Point::Ptr to_point(int index) {
+        return (*maps)[index % width][index / width];
+    }
+
+    int to_index(const Point::Ptr &point) {
+        return point->x + point->y * width;
+    }
+
+    void Floyd() {
+        for (int k = 0; k < node_num; k++) {
+            for (int i = 0; i < node_num; i++) {
+                for (int j = 0; j < node_num; j++) {
+                    if ((dist[i][k] + dist[k][j] < dist[i][j]) && (dist[i][k] != inf) && (dist[k][j] != inf) &&
+                        (i != j)) {
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                        path[i][j] = path[i][k];
+                    }
+                }
+            }
+        }
+    }
+
+    map<int, map<int, Point::Ptr>> *maps{};
+    int height{};
+    int width{};
+    int node_num{};
+    const int inf = 0xffff;
+    vector<vector<int>> G;
+    vector<vector<int>> dist;
+    vector<vector<int>> path;
 };
 
 class RoundInfo {
@@ -161,46 +250,47 @@ public:
         for (auto &col : maps) {
             for (auto &r : col.second) {
                 Point::Ptr &p = r.second;
-                p->next[Direction::NONE] = find_next_point_with_no_move(p);
+                p->next[DIRECTION::NONE] = find_next_point_with_no_move(p);
             }
         }
         for (auto &col : maps) {
             for (auto &r : col.second) {
                 Point::Ptr &p = r.second;
-                for (Direction d : {Direction::UP, Direction::DOWN, Direction::LEFT, Direction::RIGHT}) {
+                for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
                     Point::Ptr next_p = around_with_meteor_one_step(p, d);
-                    p->next[d] = next_p->next[Direction::NONE];
+                    p->next[d] = next_p->next[DIRECTION::NONE];
                     if (p != next_p && next_p->wormhole) {
                         p->next[d] = next_p->wormhole;
                     }
                 }
             }
         }
+        path.setMap(&maps, width, height);
     }
 
-    Point::Ptr around_with_meteor_one_step(const Point::Ptr &p, Direction d) {
+    Point::Ptr around_with_meteor_one_step(const Point::Ptr &p, DIRECTION d) {
         int x = p->x;
         int y = p->y;
         int next_x = x;
         int next_y = y;
         switch (d) {
-            case Direction::UP:
+            case DIRECTION::UP:
                 if (y > 0)
                     next_y--;
                 break;
-            case Direction::DOWN:
+            case DIRECTION::DOWN:
                 if (y < height - 1)
                     next_y++;
                 break;
-            case Direction::LEFT:
+            case DIRECTION::LEFT:
                 if (x > 0)
                     next_x--;
                 break;
-            case Direction::RIGHT:
+            case DIRECTION::RIGHT:
                 if (x < width - 1)
                     next_x++;
                 break;
-            case Direction::NONE:
+            case DIRECTION::NONE:
                 break;
             default:
                 break;
@@ -212,11 +302,11 @@ public:
 
     Point::Ptr find_next_point_with_no_move(const Point::Ptr &p) {
         if (p->visited) {
-            return p->next[Direction::NONE];
+            return p->next[DIRECTION::NONE];
         }
         p->visited = true;
-        if (p->tunnel == Direction::NONE) {
-            p->next[Direction::NONE] = p;
+        if (p->tunnel == DIRECTION::NONE) {
+            p->next[DIRECTION::NONE] = p;
             return p;
         }
         vector<Point::Ptr> vec_p;
@@ -225,18 +315,18 @@ public:
             vec_p.emplace_back(next_p);
             next_p->visited = true;
             next_p = around_with_meteor_one_step(next_p, next_p->tunnel);
-        } while (next_p->tunnel != Direction::NONE && !next_p->visited);
-        if (next_p->tunnel == Direction::NONE ||
+        } while (next_p->tunnel != DIRECTION::NONE && !next_p->visited);
+        if (next_p->tunnel == DIRECTION::NONE ||
             around_with_meteor_one_step(next_p, next_p->tunnel) == next_p) {
             for (Point::Ptr &q : vec_p) {
-                q->next[Direction::NONE] = next_p;
+                q->next[DIRECTION::NONE] = next_p;
             }
             return next_p;
-        } else if (next_p->next[Direction::NONE] != next_p) {
+        } else if (next_p->next[DIRECTION::NONE] != next_p) {
             for (Point::Ptr &q : vec_p) {
-                q->next[Direction::NONE] = next_p->next[Direction::NONE];
+                q->next[DIRECTION::NONE] = next_p->next[DIRECTION::NONE];
             }
-            return next_p->next[Direction::NONE];
+            return next_p->next[DIRECTION::NONE];
         } else {
             // TODO loop
         }
@@ -247,9 +337,87 @@ public:
     int height;
     int vision;
     map<int, map<int, Point::Ptr>> maps;
-
+    Path path;
     Team my_team;
     Team enemy_team;
 };
+
+inline int my_pow(int base, int exp) {
+    int ret = 1;
+    while (exp > 0) {
+        ret *= base;
+        exp--;
+    }
+    return ret;
+}
+
+class TaskScore {
+public:
+    void init_every_round(const map<int, Unit::Ptr> &my_units) {
+        my_units_map.clear();
+        my_units_count = 0;
+        good_score.clear();
+        bad_score.clear();
+        for (auto &mu : my_units) {
+            my_units_map[mu.first] = my_units_count;
+            my_units_count++;
+        }
+        score_num = my_pow(5, my_units_count);
+    }
+
+    void set_task_good_score(TASK_NAME task_name, vector<pair<map<int, DIRECTION>, double>> &direction_score) {
+        set_task_score(good_score, task_name, direction_score);
+    }
+
+    void set_task_bad_score(TASK_NAME task_name, vector<pair<map<int, DIRECTION>, double>> &direction_score) {
+        set_task_score(bad_score, task_name, direction_score);
+    }
+
+    void set_task_score(map<TASK_NAME, vector<double>> &score, TASK_NAME task_name,
+                        vector<pair<map<int, DIRECTION>, double>> &direction_score) {
+        if (score.count(task_name) == 0) {
+            score[task_name] = vector<double>(score_num, 0.0);
+        }
+        for (auto &ds : direction_score) {
+            int id = 0;
+            for (auto &unit_direction : ds.first) {
+                id += my_pow(5, my_units_map[unit_direction.first]) * (int) unit_direction.second;
+            }
+            score[task_name][id] = ds.second;
+        }
+    }
+
+    map<int, DIRECTION> get_map_direction(int id) {
+        map<int, DIRECTION> ret;
+        for (int i = 0; i < my_units_count; i++) {
+            ret[i] = DIRECTION(id / (my_pow(5, i)) % 5);
+        }
+        return ret;
+    }
+
+public:
+    int my_units_count;
+    map<int, int> my_units_map;
+    int score_num;
+
+    map<TASK_NAME, vector<double>> good_score;
+    map<TASK_NAME, vector<double>> bad_score;
+};
+
+inline bool
+in_vision(const map<int, Unit::Ptr> &my_units, const Point::Ptr &loc, const shared_ptr<LegStartInfo> &leg_info) {
+    bool ret = false;
+    for (auto &mu : my_units) {
+        if (Point::distance(mu.second->loc, loc) <= leg_info->vision) {
+            ret = true;
+            break;
+        }
+    }
+    return ret;
+}
+
+inline bool equal_double(double a, double b) {
+    return abs(a - b) < 1e-6;
+}
 
 #endif //AI_YANG_UTIL_H

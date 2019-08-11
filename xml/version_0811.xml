@@ -1,8 +1,3 @@
-#ifndef AI_YANG_XML_TREE_H
-#define AI_YANG_XML_TREE_H
-
-static const char* xml_text = R"(
-
 <root main_tree_to_execute="BehaviorTree">
     <!-- ////////// -->
     <BehaviorTree ID="BehaviorTree">
@@ -35,7 +30,3 @@ static const char* xml_text = R"(
     <!-- ////////// -->
 </root>
 
-
- )";
-
-#endif //AI_YANG_XML_TREE_H

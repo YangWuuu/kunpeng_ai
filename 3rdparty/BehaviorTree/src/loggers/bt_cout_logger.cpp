@@ -1,5 +1,7 @@
 #include "behaviortree_cpp/loggers/bt_cout_logger.h"
 
+#include "log.h"
+
 namespace BT {
     std::atomic<bool> StdCoutLogger::ref_count(false);
 
@@ -26,16 +28,16 @@ namespace BT {
         constexpr const size_t ws_count = 25;
 
         double since_epoch = duration<double>(timestamp).count();
-        printf("[%.3f]: %s%s %s -> %s",
+        log_info("[%.3f]: %s%s %s -> %s",
                since_epoch, node.name().c_str(),
                &whitespaces[std::min(ws_count, node.name().size())],
                toStr(prev_status, true).c_str(),
                toStr(status, true).c_str());
-        std::cout << std::endl;
+//        std::cout << std::endl;
     }
 
     void StdCoutLogger::flush() {
-        std::cout << std::flush;
+//        std::cout << std::flush;
         ref_count = false;
     }
 

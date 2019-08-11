@@ -12,10 +12,15 @@
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_cpp/loggers/bt_file_logger.h"
 #include "behaviortree_cpp/loggers/bt_cout_logger.h"
-#include "customAction.h"
-#include "customCondition.h"
 #include "xml_tree.h"
 #include "game.h"
+#include "customAction.h"
+#include "assign_task.h"
+#include "action_eat_enemy.h"
+#include "action_eat_power.h"
+#include "action_explore_map.h"
+#include "action_run_away.h"
+#include "make_decision.h"
 
 using namespace std;
 
@@ -25,22 +30,27 @@ public:
             : team_id(_team_id),
               team_name(move(_team_name)),
               debug(_debug) {
+        leg_info = nullptr;
+        prev_leg_info = nullptr;
+        round_info = nullptr;
+        game = nullptr;
         blackboard = BT::Blackboard::create();
-        blackboard->set("leg", &leg);
-        blackboard->set("ri", &ri);
+        blackboard->set("info", this);
         BT::BehaviorTreeFactory factory;
 
-        factory.registerNodeType<IsEnemyAround>("IsEnemyAround");
-        factory.registerNodeType<IsMyMode>("IsMyMode");
-        factory.registerNodeType<IsPowerAround>("IsPowerAround");
-        factory.registerNodeType<MoveToNearestPower>("MoveToNearestPower");
-        factory.registerNodeType<RandomWalk>("RandomWalk");
+        factory.registerNodeType<AssignTask>("AssignTask");
+        factory.registerNodeType<CalculateShortestPath>("CalculateShortestPath");
+        factory.registerNodeType<EatEnemy>("EatEnemy");
+        factory.registerNodeType<EatPower>("EatPower");
+        factory.registerNodeType<ExploreMap>("ExploreMap");
+        factory.registerNodeType<MakeDecision>("MakeDecision");
+        factory.registerNodeType<PredictEnemyNowLoc>("PredictEnemyNowLoc");
         factory.registerNodeType<RunAway>("RunAway");
 
         tree = factory.createTreeFromText(xml_text, blackboard);
         if (debug) {
 //            printTreeRecursively(tree.root_node);
-//            logger_cout.setTree(tree);
+            logger_cout.setTree(tree);
             logger_file.setTree(tree, "bt_trace.fbl");
         }
     }
@@ -48,7 +58,7 @@ public:
     ~Player() = default;
 
     void message_leg_start(cJSON *msg);
-    void message_leg_end(cJSON *msg);
+    string message_leg_end(cJSON *msg);
     string message_round(cJSON *msg);
 
 private:
@@ -58,10 +68,12 @@ private:
     void show_map();
 
 public:
-    LegStartInfo leg;
-    RoundInfo ri;
-    shared_ptr<GameState> gameState;
-private:
+    shared_ptr<LegStartInfo> leg_info;
+    shared_ptr<LegStartInfo> prev_leg_info;
+    shared_ptr<RoundInfo> round_info;
+    shared_ptr<Game> game;
+    shared_ptr<TaskScore> task_score;
+
     BT::Tree tree;
     BT::Blackboard::Ptr blackboard;
 
@@ -71,5 +83,8 @@ private:
     bool debug;
     BT::StdCoutLogger logger_cout;
     BT::FileLogger logger_file;
+
+public:
+
 };
 #endif //AI_YANG_PLAYER_H

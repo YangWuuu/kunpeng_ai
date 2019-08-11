@@ -17,7 +17,7 @@ void Player::parse_message_leg_start(cJSON *msg) {
     int height = msg_height->valueint;
     cJSON *msg_vision = cJSON_GetObjectItem(msg_maps, "vision");
     int vision = msg_vision->valueint;
-    leg.GenMap(width, height, vision);
+    leg_info->GenMap(width, height, vision);
     cJSON *msg_meteors = cJSON_GetObjectItem(msg_maps, "meteor");
     if (msg_meteors != nullptr) {
         for (int i = 0; i < cJSON_GetArraySize(msg_meteors); i++) {
@@ -26,7 +26,7 @@ void Player::parse_message_leg_start(cJSON *msg) {
             cJSON *msg_y = cJSON_GetObjectItem(msg_meteor, "y");
             int x = msg_x->valueint;
             int y = msg_y->valueint;
-            leg.maps[x][y]->wall = true;
+            leg_info->maps[x][y]->wall = true;
         }
     }
 
@@ -41,13 +41,13 @@ void Player::parse_message_leg_start(cJSON *msg) {
             int y = msg_y->valueint;
             string tunnel = string(msg_direction->valuestring);
             if (tunnel == "up") {
-                leg.maps[x][y]->tunnel = Direction::UP;
+                leg_info->maps[x][y]->tunnel = DIRECTION::UP;
             } else if (tunnel == "down") {
-                leg.maps[x][y]->tunnel = Direction::DOWN;
+                leg_info->maps[x][y]->tunnel = DIRECTION::DOWN;
             } else if (tunnel == "left") {
-                leg.maps[x][y]->tunnel = Direction::LEFT;
+                leg_info->maps[x][y]->tunnel = DIRECTION::LEFT;
             } else if (tunnel == "right") {
-                leg.maps[x][y]->tunnel = Direction::RIGHT;
+                leg_info->maps[x][y]->tunnel = DIRECTION::RIGHT;
             } else {
                 log_error("direction is wrong %s", tunnel.c_str());
             }
@@ -69,8 +69,8 @@ void Player::parse_message_leg_start(cJSON *msg) {
             if (wormholes.count(name) == 0) {
                 wormholes[name] = vector<Point::Ptr>();
             }
-            leg.maps[x][y]->name = name;
-            wormholes[name].emplace_back(leg.maps[x][y]);
+            leg_info->maps[x][y]->name = name;
+            wormholes[name].emplace_back(leg_info->maps[x][y]);
         }
         for (auto &w : wormholes) {
             if (w.second.size() != 2) {
@@ -89,24 +89,24 @@ void Player::parse_message_leg_start(cJSON *msg) {
     if (cJSON_GetArraySize(msg_teams) != 2) {
         log_error("teams length is not 2");
     }
-    leg.my_team.units.clear();
-    leg.enemy_team.units.clear();
+    leg_info->my_team.units.clear();
+    leg_info->enemy_team.units.clear();
     for (int i = 0; i < 2; i++) {
         cJSON *msg_team = cJSON_GetArrayItem(msg_teams, i);
         cJSON *msg_force = cJSON_GetObjectItem(msg_team, "force");
         cJSON *msg_id = cJSON_GetObjectItem(msg_team, "id");
         cJSON *msg_units = cJSON_GetObjectItem(msg_team, "players");
         if (msg_id->valueint == team_id) {
-            leg.my_team.id = msg_id->valueint;
-            leg.my_team.force = msg_force->valuestring;
+            leg_info->my_team.id = msg_id->valueint;
+            leg_info->my_team.force = msg_force->valuestring;
             for (int j = 0; j < cJSON_GetArraySize(msg_units); j++) {
-                leg.my_team.units.push_back(cJSON_GetArrayItem(msg_units, j)->valueint);
+                leg_info->my_team.units.push_back(cJSON_GetArrayItem(msg_units, j)->valueint);
             }
         } else {
-            leg.enemy_team.id = msg_id->valueint;
-            leg.enemy_team.force = msg_force->valuestring;
+            leg_info->enemy_team.id = msg_id->valueint;
+            leg_info->enemy_team.force = msg_force->valuestring;
             for (int j = 0; j < cJSON_GetArraySize(msg_units); j++) {
-                leg.enemy_team.units.push_back(cJSON_GetArrayItem(msg_units, j)->valueint);
+                leg_info->enemy_team.units.push_back(cJSON_GetArrayItem(msg_units, j)->valueint);
             }
         }
     }
@@ -121,12 +121,12 @@ void Player::parse_message_round(cJSON *msg) {
     if (msg_data == nullptr) {
         log_error("msg_data is nullptr");
     }
-    ri.mode = msg_mode->valuestring;
+    round_info->mode = msg_mode->valuestring;
     cJSON *msg_round_id = cJSON_GetObjectItem(msg_data, "round_id");
-    ri.round_id = msg_round_id->valueint;
+    round_info->round_id = msg_round_id->valueint;
     cJSON *msg_players = cJSON_GetObjectItem(msg_data, "players");
-    ri.my_units.clear();
-    ri.enemy_units.clear();
+    round_info->my_units.clear();
+    round_info->enemy_units.clear();
     if (msg_players != nullptr) {
         for (int i = 0; i < cJSON_GetArraySize(msg_players); i++) {
             cJSON *msg_player = cJSON_GetArrayItem(msg_players, i);
@@ -136,23 +136,23 @@ void Player::parse_message_round(cJSON *msg) {
             int team = cJSON_GetObjectItem(msg_player, "team")->valueint;
             int x = cJSON_GetObjectItem(msg_player, "x")->valueint;
             int y = cJSON_GetObjectItem(msg_player, "y")->valueint;
-            Unit::Ptr tmp = Unit::gen(id, score, sleep, team, leg.maps[x][y]);
+            Unit::Ptr tmp = Unit::gen(id, score, sleep, team, leg_info->maps[x][y]);
             if (team == team_id) {
-                ri.my_units[id] = move(tmp);
+                round_info->my_units[id] = move(tmp);
             } else {
-                ri.enemy_units[id] = move(tmp);
+                round_info->enemy_units[id] = move(tmp);
             }
         }
     }
     cJSON *msg_powers = cJSON_GetObjectItem(msg_data, "power");
-    ri.powers.clear();
+    round_info->powers.clear();
     if (msg_powers != nullptr) {
         for (int i = 0; i < cJSON_GetArraySize(msg_powers); i++) {
             cJSON *msg_power = cJSON_GetArrayItem(msg_powers, i);
             int point = cJSON_GetObjectItem(msg_power, "point")->valueint;
             int x = cJSON_GetObjectItem(msg_power, "x")->valueint;
             int y = cJSON_GetObjectItem(msg_power, "y")->valueint;
-            ri.powers.emplace_back(Power(point, leg.maps[x][y]));
+            round_info->powers.emplace_back(Power(point, leg_info->maps[x][y]));
         }
     }
     cJSON *msg_teams = cJSON_GetObjectItem(msg_data, "teams");
@@ -165,11 +165,11 @@ void Player::parse_message_round(cJSON *msg) {
         cJSON *msg_point = cJSON_GetObjectItem(msg_team, "point");
         cJSON *msg_remain_life = cJSON_GetObjectItem(msg_team, "remain_life");
         if (msg_id->valueint == team_id) {
-            ri.my_point = msg_point->valueint;
-            ri.my_remain_life = msg_remain_life->valueint;
+            round_info->my_point = msg_point->valueint;
+            round_info->my_remain_life = msg_remain_life->valueint;
         } else {
-            ri.enemy_point = msg_point->valueint;
-            ri.enemy_remain_life = msg_remain_life->valueint;
+            round_info->enemy_point = msg_point->valueint;
+            round_info->enemy_remain_life = msg_remain_life->valueint;
         }
     }
 }
@@ -182,10 +182,12 @@ string Player::pack_msg() {
 
     cJSON_AddItemToObject(root, "msg_name", cJSON_CreateString("action"));
     cJSON_AddItemToObject(root, "msg_data", msg_data);
-    cJSON_AddNumberToObject(msg_data, "round_id", ri.round_id);
+    cJSON_AddNumberToObject(msg_data, "round_id", round_info->round_id);
     cJSON_AddItemToObject(msg_data, "actions", actions);
 
-    for (auto &u: ri.my_units) {
+    for (auto &u: round_info->my_units) {
+        if (u.second == nullptr)
+            continue;
         cJSON *subAct = cJSON_CreateObject();
         cJSON *move = cJSON_CreateArray();
         cJSON_AddItemToArray(actions, subAct);
@@ -193,16 +195,16 @@ string Player::pack_msg() {
         cJSON_AddNumberToObject(subAct, "player_id", u.first);
         cJSON_AddItemToObject(subAct, "move", move);
         switch (u.second->direction) {
-            case Direction::UP:
+            case DIRECTION::UP:
                 cJSON_AddItemToArray(move, cJSON_CreateString("up"));
                 break;
-            case Direction::DOWN:
+            case DIRECTION::DOWN:
                 cJSON_AddItemToArray(move, cJSON_CreateString("down"));
                 break;
-            case Direction::LEFT:
+            case DIRECTION::LEFT:
                 cJSON_AddItemToArray(move, cJSON_CreateString("left"));
                 break;
-            case Direction::RIGHT:
+            case DIRECTION::RIGHT:
                 cJSON_AddItemToArray(move, cJSON_CreateString("right"));
                 break;
             default:
@@ -244,52 +246,52 @@ void Player::show_map() {
     string fmt_wall = "\x1b[40;30m  \x1b[0m";
     string fmt_tunnel = "\x1b[46;35m %s\x1b[0m";
     string fmt_wormhole = "\x1b[44;35m %s\x1b[0m";
-    printf("\x1b[47;30m\n\nround_id: %d  mode: %s\n\n\x1b[0m", ri.round_id, ri.mode.c_str());
+    printf("\x1b[47;30m\n\nround_id: %d  mode: %s\n\n\x1b[0m", round_info->round_id, round_info->mode.c_str());
     auto print_team_info = [&](const Team &team, const string &fmt, int point, int remain_life){
         printf("\x1b[%sid: %d  point: %d  remain_life: %d force: %s\x1b[0m", fmt.c_str(), team.id, point, remain_life, team.force.c_str());
         printf("\x1b[0;0m\n\x1b[0m");
-        auto map_units = &ri.my_units;
+        auto map_units = &round_info->my_units;
         if (team.id != team_id)
-            map_units = &ri.enemy_units;
+            map_units = &round_info->enemy_units;
         for (auto &mu : *map_units){
             auto &u = mu.second;
             printf("\x1b[%s    %d  score: %d  sleep: %d  x: %2d y:%2d\x1b[0m", fmt.c_str(), u->id, u->score, u->sleep, u->loc->x, u->loc->y);
             printf("\x1b[0;0m\n\x1b[0m");
         }
     };
-    print_team_info(leg.my_team, "42;37m", ri.my_point, ri.my_remain_life);
-    print_team_info(leg.enemy_team, "41;37m", ri.enemy_point, ri.enemy_remain_life);
+    print_team_info(leg_info->my_team, "42;37m", round_info->my_point, round_info->my_remain_life);
+    print_team_info(leg_info->enemy_team, "41;37m", round_info->enemy_point, round_info->enemy_remain_life);
 
-    vector<vector<string>> map_string(leg.height, vector<string>(leg.width, format(fmt_map, ".")));
-    for (auto &power : ri.powers) {
+    vector<vector<string>> map_string(leg_info->height, vector<string>(leg_info->width, format(fmt_map, ".")));
+    for (auto &power : round_info->powers) {
         map_string[power.loc->x][power.loc->y] = format(fmt_power, to_string(power.point));
     }
-    for (int h = 0; h < leg.height; h++) {
-        for (int w = 0; w < leg.width; w++) {
-            if (leg.maps[w][h]->wall){
+    for (int h = 0; h < leg_info->height; h++) {
+        for (int w = 0; w < leg_info->width; w++) {
+            if (leg_info->maps[w][h]->wall){
                 map_string[w][h] = fmt_wall;
-            } else if (leg.maps[w][h]->tunnel == Direction::UP) {
+            } else if (leg_info->maps[w][h]->tunnel == DIRECTION::UP) {
                 map_string[w][h] = format(fmt_tunnel, "^");
-            } else if (leg.maps[w][h]->tunnel == Direction::DOWN) {
+            } else if (leg_info->maps[w][h]->tunnel == DIRECTION::DOWN) {
                 map_string[w][h] = format(fmt_tunnel, "v");
-            } else if (leg.maps[w][h]->tunnel == Direction::LEFT) {
+            } else if (leg_info->maps[w][h]->tunnel == DIRECTION::LEFT) {
                 map_string[w][h] = format(fmt_tunnel, "<");
-            } else if (leg.maps[w][h]->tunnel == Direction::RIGHT) {
+            } else if (leg_info->maps[w][h]->tunnel == DIRECTION::RIGHT) {
                 map_string[w][h] = format(fmt_tunnel, ">");
-            } else if (leg.maps[w][h]->wormhole) {
-                map_string[w][h] = format(fmt_wormhole, leg.maps[w][h]->name);
+            } else if (leg_info->maps[w][h]->wormhole) {
+                map_string[w][h] = format(fmt_wormhole, leg_info->maps[w][h]->name);
             }
         }
     }
-    for (auto &u : ri.enemy_units) {
+    for (auto &u : round_info->enemy_units) {
         map_string[u.second->loc->x][u.second->loc->y] = format(fmt_enemy, to_string(u.first));
     }
-    for (auto &u : ri.my_units) {
+    for (auto &u : round_info->my_units) {
         map_string[u.second->loc->x][u.second->loc->y] = format(fmt_my, to_string(u.first));
     }
     if (debug) {
-        for (int h = 0; h < leg.height; h++) {
-            for (int w = 0; w < leg.width; w++) {
+        for (int h = 0; h < leg_info->height; h++) {
+            for (int w = 0; w < leg_info->width; w++) {
                 printf("%s", map_string[w][h].c_str());
             }
             printf("\x1b[0;0m\n\x1b[0m");

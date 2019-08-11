@@ -2,31 +2,33 @@
 #define AI_YANG_GAME_H
 
 #include <vector>
+#include <set>
 
 #include "util.h"
 
 using namespace std;
 
-class GameState : public enable_shared_from_this<GameState>
-{
+class Game : public enable_shared_from_this<Game> {
 public:
-    GameState(LegStartInfo *_leg) : leg(_leg), round_id(0), isEat(false), total_score(0.0) {
-        power_score = vector<vector<double>>(leg->width, vector<double>(leg->height, 0.0));
-        background_score_limit = vector<vector<double>>(leg->width, vector<double>(leg->height, 0.0));
-        visit_time = vector<vector<int>>(leg->width, vector<int>(leg->height, 0));
-        for (int i = 0; i < leg->width; i++) {
-            for (int j = 0; j < leg->height; j++) {
-                Point::Ptr point = leg->maps[i][j];
-                if (!point->wall && point->tunnel == Direction::NONE && !point->wormhole) {
-                    background_score_limit[i][j] = 1.0 / (leg->width + leg->height);
+    explicit Game(shared_ptr<LegStartInfo> &_leg) : leg_info(_leg), round_id(0), is_eat(false), total_score(0.0) {
+        power_score = vector<vector<double>>(leg_info->width, vector<double>(leg_info->height, 0.0));
+        background_score_limit = vector<vector<double>>(leg_info->width, vector<double>(leg_info->height, 0.0));
+        visit_time = vector<vector<int>>(leg_info->width, vector<int>(leg_info->height, 0));
+        for (int i = 0; i < leg_info->width; i++) {
+            for (int j = 0; j < leg_info->height; j++) {
+                Point::Ptr point = leg_info->maps[i][j];
+                if (!point->wall && point->tunnel == DIRECTION::NONE && !point->wormhole) {
+                    background_score_limit[i][j] = 0.1 / (leg_info->width + leg_info->height);
                 }
             }
         }
         background_score = background_score_limit;
     }
 
-    explicit GameState(const shared_ptr<GameState>& _prev_state) : leg(_prev_state->leg), round_id(_prev_state->round_id),
-                                                 isEat(_prev_state->isEat), total_score(_prev_state->total_score) {
+    explicit Game(const shared_ptr<Game> &_prev_state) : leg_info(_prev_state->leg_info),
+                                                         round_id(_prev_state->round_id),
+                                                         is_eat(_prev_state->is_eat),
+                                                         total_score(_prev_state->total_score) {
         power_score = _prev_state->power_score;
         background_score = _prev_state->background_score;
         background_score_limit = _prev_state->background_score_limit;
@@ -41,22 +43,26 @@ public:
         }
     }
 
-    void updateRoundInfo(RoundInfo &ri);
+    void update_round_info(shared_ptr<RoundInfo> &round_info);
 
     bool isEnd() { return round_id >= 300; }
 
-    vector<Direction> getLegalActions(int agent_id);
+    double getAreaScore(Point::Ptr &center, int area);
 
-    shared_ptr<GameState> generateSuccessor(int agent_id, Direction action);
+    Point::Ptr getBestGoal(Point::Ptr &start);
 
-    shared_ptr<GameState> generateEnemySuccessor(int agent_id, Direction action);
+    DIRECTION checkTunnel(int agent_id, DIRECTION action);
+
+    DIRECTION checkRunAway(int agent_id, DIRECTION action);
+
+    bool inVision(Point::Ptr &loc);
 
 public:
-    LegStartInfo *leg;
+    shared_ptr<LegStartInfo> leg_info;
     map<int, Unit::Ptr> my_units;
     map<int, Unit::Ptr> enemy_units;
     int round_id;
-    bool isEat;
+    bool is_eat;
     double total_score;
     vector<vector<double>> power_score;
     vector<vector<double>> background_score;
