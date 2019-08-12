@@ -179,7 +179,7 @@ public:
         return ret;
     }
 
-private:
+public:
     Point::Ptr to_point(int index) {
         return (*maps)[index % width][index / width];
     }
@@ -188,6 +188,7 @@ private:
         return point->x + point->y * width;
     }
 
+private:
     void Floyd() {
         for (int k = 0; k < node_num; k++) {
             for (int i = 0; i < node_num; i++) {
