@@ -12,10 +12,6 @@ using namespace std;
 
 class EatPowerState {
 public:
-//    EatPowerState(const EatPowerState &other);
-//
-//    EatPowerState &operator=(const EatPowerState &other);
-
     bool is_terminal() const;
 
     int agent_id() const;
@@ -24,7 +20,7 @@ public:
 
     void get_actions(vector<DIRECTION> &actions) const;
 
-    bool get_random_action(DIRECTION& action) const;
+    bool get_random_action(DIRECTION &action) const;
 
     vector<double> evaluate() const;
 

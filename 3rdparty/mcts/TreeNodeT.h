@@ -35,7 +35,7 @@ namespace mcts {
         // expand by adding a single child
         Ptr expand() {
             // sanity check that we're not already fully expanded
-            if (is_fully_expanded()) return NULL;
+            if (is_fully_expanded()) return nullptr;
 
             // sanity check that we don't have more children than we do actions
             //assert(children.size() < actions.size()) ;
@@ -91,10 +91,9 @@ namespace mcts {
         // get parent
         Ptr get_parent() const { return parent; }
 
-    public:
-        int agent_id;            // agent who made the decision
     private:
         State state;            // the state of this TreeNode
+        int agent_id;            // agent who made the decision
         Action action;            // the action which led to the state of this TreeNode
         Ptr parent;        // parent of this TreeNode
 

@@ -75,19 +75,34 @@ BT::NodeStatus EatPower::tick() {
     for (auto &power : info->round_info->powers) {
         state.loc_power[info->leg_info->path.to_index(power.loc)] = (double) power.point;
     }
+
     mcts::UCT<EatPowerState, DIRECTION> uct;
+    uct.max_iterations = 30000;
+    uct.max_millis = 400;
+    uct.simulation_depth = 10 * my_units_count;
     auto root_tree = uct.run(state);
-    log_info("iter: %d", uct.get_iterations());
-    auto node = uct.get_most_visited_child(root_tree);
-    map<int, DIRECTION> units_direction;
-    while (true) {
-        units_direction[my_units_id[node->agent_id]] = node->get_action();
-        if (node->get_state().round_id > 0) {
-            break;
+    log_info("iterations: %d/%d simulation_depth: %d run_millis: %.1f/%dms", uct.get_iterations(), uct.max_iterations, uct.simulation_depth, uct.run_millis, uct.max_millis);
+
+    vector<pair<map<int, DIRECTION>, double>> direction_score;
+    function<void(decltype(root_tree)&, pair<map<int, DIRECTION>, double>)> save_all_path;
+    save_all_path = [&](decltype(root_tree)& node, pair<map<int, DIRECTION>, double> _score) {
+        if (node->get_parent()) {
+            int node_id = node->get_parent()->get_state().agent_id();
+            _score.first[my_units_id[node_id]] = node->get_action();
+            _score.second = _score.second + node->get_value() / node->get_num_visits();
+            if (node->get_state().round_id > 0) {
+                direction_score.emplace_back(_score);
+                return;
+            }
         }
-        node = uct.get_most_visited_child(node);
-    }
-    vector<pair<map<int, DIRECTION>, double>> direction_score = {make_pair(units_direction, node->get_num_visits())};
+        int num_children = node->get_num_children();
+        for (int i = 0; i < num_children; i++) {
+            auto child = node->get_child(i);
+            save_all_path(child, _score);
+        }
+    };
+    pair<map<int, DIRECTION>, double> score;
+    save_all_path(root_tree, score);
     info->task_score->set_task_good_score(TASK_NAME::TaskEatPower, direction_score);
     return BT::NodeStatus::SUCCESS;
 }

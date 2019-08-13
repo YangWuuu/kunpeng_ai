@@ -29,6 +29,8 @@ namespace mcts {
         unsigned int max_millis;        // run for a maximum of this many milliseconds (0 to run till end)
         unsigned int simulation_depth;    // how many ticks (frames) to run simulation for
 
+        double run_millis{};
+
         //--------------------------------------------------------------
         UCT() :
                 iterations(0),
@@ -142,6 +144,7 @@ namespace mcts {
                 if (max_iterations > 0 && iterations > max_iterations) break;
                 iterations++;
             }
+            run_millis = timer.run_duration_micros() / 1000.0;
             return root_node;
         }
     };

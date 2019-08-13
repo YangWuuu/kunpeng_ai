@@ -28,16 +28,6 @@ inline vector<string> string_split(const string &s, const string &c) {
     return v;
 }
 
-inline vector<pair<int, int>> getVisionGrids(int x, int y, int width, int height, int vision) {
-    vector<pair<int, int>> ret;
-    for (int i = max(x - vision, 0); i <= min(x + vision, width - 1); i++) {
-        for (int j = max(y - vision, 0); j <= min(y + vision, height - 1); j++) {
-            ret.emplace_back(make_pair(i, j));
-        }
-    }
-    return ret;
-};
-
 enum TASK_NAME {
     TaskEatEnemy,
     TaskExploreMap,
@@ -186,6 +176,10 @@ public:
 
     int to_index(const Point::Ptr &point) {
         return point->x + point->y * width;
+    }
+
+    int to_index(int x, int y) {
+        return x + y * width;
     }
 
 private:
@@ -420,5 +414,19 @@ in_vision(const map<int, Unit::Ptr> &my_units, const Point::Ptr &loc, const shar
 inline bool equal_double(double a, double b) {
     return abs(a - b) < 1e-6;
 }
+
+inline vector<pair<int, int>> get_vision_grids(int x, int y, int width, int height, int vision) {
+    vector<pair<int, int>> ret;
+    for (int i = max(x - vision, 0); i <= min(x + vision, width - 1); i++) {
+        for (int j = max(y - vision, 0); j <= min(y + vision, height - 1); j++) {
+            ret.emplace_back(make_pair(i, j));
+        }
+    }
+    return ret;
+};
+
+inline vector<pair<int, int>> get_vision_grids(Point::Ptr &loc, shared_ptr<LegStartInfo> leg_info) {
+    return get_vision_grids(loc->x, loc->y, leg_info->width, leg_info->height, leg_info->vision);
+};
 
 #endif //AI_YANG_UTIL_H

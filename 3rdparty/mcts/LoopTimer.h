@@ -17,8 +17,8 @@ public:
     Clock::time_point start_time;
     Clock::time_point loop_start_time;
 
-    Units avg_loop_duration;
-    Units run_duration;
+    Units avg_loop_duration{};
+    Units run_duration{};
 
     LoopTimer() : verbose(false) {}
 
@@ -102,5 +102,5 @@ public:
     }
 
 private:
-    unsigned int iterations;
+    unsigned int iterations{};
 };

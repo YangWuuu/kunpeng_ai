@@ -1,9 +1,113 @@
 #include "action_explore_map.h"
 
 #include "player.h"
+#include "log.h"
+
+bool ExploreMapState::is_terminal() const {
+    return _is_terminal;
+}
+
+int ExploreMapState::agent_id() const {
+    return _agent_id;
+}
+
+void ExploreMapState::apply_action(const DIRECTION &action) {
+    Point::Ptr loc = leg_info->path.to_point(agent_loc[_agent_id]);
+    int next_loc_int = leg_info->path.to_index(loc->next[action]);
+    agent_loc[_agent_id] = next_loc_int;
+    for (auto &xy : get_vision_grids(loc->next[action], leg_info)) {
+        int loc_int = leg_info->path.to_index(leg_info->maps[xy.first][xy.second]);
+        if (loc_point.count(loc_int) > 0) {
+            agent_reward[_agent_id] += loc_point[loc_int];
+            loc_point.erase(loc_point.find(loc_int));
+        }
+    }
+    _agent_id++;
+    if (_agent_id == agent_num) {
+        _agent_id = 0;
+        round_id++;
+        if (loc_point.empty()) {
+            _is_terminal = true;
+        }
+    }
+}
+
+void ExploreMapState::get_actions(vector<DIRECTION> &actions) const {
+    actions.clear();
+    auto loc = leg_info->path.to_point(agent_loc[_agent_id]);
+    actions.emplace_back(DIRECTION::NONE);
+    for (int i = 0; i < 4; i++) {
+        if (loc->next[DIRECTION(i)] != loc) {
+            actions.emplace_back(DIRECTION(i));
+        }
+    }
+}
+
+bool ExploreMapState::get_random_action(DIRECTION &action) const {
+    vector<DIRECTION> actions;
+    get_actions(actions);
+    if (actions.empty()) {
+        return false;
+    }
+    action = actions[uniform_int_distribution<int>(0, actions.size() - 1)(e)];
+    return true;
+}
+
+vector<double> ExploreMapState::evaluate() const {
+    vector<double> ret;
+    for (double reward : agent_reward) {
+        ret.emplace_back(reward / (round_id + 1));
+    }
+    return ret;
+}
 
 BT::NodeStatus ExploreMap::tick() {
     auto info = config().blackboard->get<Player *>("info");
 
+    ExploreMapState state;
+    state.leg_info = info->leg_info;
+    int my_units_count = 0;
+    vector<int> my_units_id;
+    for (auto &mu : info->round_info->my_units) {
+        my_units_id.emplace_back(mu.first);
+        state.agent_loc.emplace_back(info->leg_info->path.to_index(mu.second->loc));
+        state.agent_reward.emplace_back(0.0);
+        my_units_count++;
+    }
+    state.agent_num = my_units_count;
+    for (int i = 0; i < info->leg_info->width; i++) {
+        for (int j = 0; j < info->leg_info->height; j++) {
+            state.loc_point[info->leg_info->path.to_index(i, j)] = info->game->env_score[i][j];
+        }
+    }
+
+    mcts::UCT<ExploreMapState, DIRECTION> uct;
+    uct.max_iterations = 100000;
+    uct.max_millis = 400;
+    uct.simulation_depth = 20 * my_units_count;
+    auto root_tree = uct.run(state);
+    log_info("iterations: %d/%d simulation_depth: %d run_millis: %.1f/%dms", uct.get_iterations(), uct.max_iterations, uct.simulation_depth, uct.run_millis, uct.max_millis);
+
+    vector<pair<map<int, DIRECTION>, double>> direction_score;
+    function<void(decltype(root_tree)&, pair<map<int, DIRECTION>, double>)> save_all_path;
+    save_all_path = [&](decltype(root_tree)& node, pair<map<int, DIRECTION>, double> _score) {
+        if (node->get_parent()) {
+            int node_id = node->get_parent()->get_state().agent_id();
+            _score.first[my_units_id[node_id]] = node->get_action();
+            _score.second = _score.second + node->get_value() / node->get_num_visits();
+            if (node->get_state().round_id > 0) {
+                direction_score.emplace_back(_score);
+                return;
+            }
+        }
+        int num_children = node->get_num_children();
+        for (int i = 0; i < num_children; i++) {
+            auto child = node->get_child(i);
+            save_all_path(child, _score);
+        }
+    };
+    pair<map<int, DIRECTION>, double> score;
+    save_all_path(root_tree, score);
+    info->task_score->set_task_good_score(TASK_NAME::TaskExploreMap, direction_score);
     return BT::NodeStatus::SUCCESS;
 }
