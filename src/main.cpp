@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
     vector<int> time_vec_0;
     vector<int> time_vec_1;
     vector<string> leg_end_msgs;
+    int recv_err_count = 0;
     while (true) {
         char buffer[99999] = {'\0'};
         auto start_time_0 = chrono::system_clock::now();
@@ -63,8 +64,10 @@ int main(int argc, char *argv[]) {
             cJSON *msgBuf = cJSON_Parse(buffer + 5);
             log_info("%s", buffer);
 
-            if (nullptr == msgBuf)
+            if (nullptr == msgBuf) {
+                recv_err_count++;
                 continue;
+            }
             cJSON *msgNamePtr = cJSON_GetObjectItem(msgBuf, "msg_name");
             if (nullptr == msgNamePtr)
                 continue;
@@ -91,6 +94,9 @@ int main(int argc, char *argv[]) {
             time_vec_0.push_back((int) duration_0.count());
             time_vec_1.push_back((int) duration_1.count());
             log_info("round time cost: %ld/%ld ms\n\n", duration_1.count(), duration_0.count());
+        }
+        if (recv_err_count > 20) {
+            break;
         }
     }
     log_info("max single time is %d/%d ms", *max_element(time_vec_1.begin(), time_vec_1.end()), *max_element(time_vec_0.begin(), time_vec_0.end()));

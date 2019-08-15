@@ -9,9 +9,9 @@
 #define USE_LOG
 #ifdef USE_LOG
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdarg>
+#include <cstring>
 
 typedef void (*log_LockFn)(void *udata, int lock);
 
@@ -47,4 +47,7 @@ void log_log(int level, const char *file, int line, const char *fmt, ...);
 #define log_warn(...)
 #define log_error(...)
 #define log_fatal(...)
+
+#define log_set_fp(...)
+#define log_set_quiet(...)
 #endif //use log

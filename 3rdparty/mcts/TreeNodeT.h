@@ -18,6 +18,7 @@ namespace mcts {
     template<class State, typename Action>
     class TreeNodeT : public enable_shared_from_this<TreeNodeT<State, Action>> {
         typedef std::shared_ptr<TreeNodeT<State, Action> > Ptr;
+        typedef std::weak_ptr<TreeNodeT<State, Action> > WeakPtr;
 
     public:
         //--------------------------------------------------------------
@@ -89,13 +90,13 @@ namespace mcts {
         Ptr get_child(int i) const { return children[i]; }
 
         // get parent
-        Ptr get_parent() const { return parent; }
+        Ptr get_parent() const { return parent.lock(); }
 
     private:
         State state;            // the state of this TreeNode
         int agent_id;            // agent who made the decision
         Action action;            // the action which led to the state of this TreeNode
-        Ptr parent;        // parent of this TreeNode
+        WeakPtr parent;        // parent of this TreeNode
 
         int num_visits;            // number of times TreeNode has been visited
         double value;            // value of this TreeNode
@@ -117,7 +118,7 @@ namespace mcts {
             child_node->state.apply_action(new_action);
 
             // add to children
-            children.push_back(child_node);
+            children.emplace_back(child_node);
 
             return child_node;
         }

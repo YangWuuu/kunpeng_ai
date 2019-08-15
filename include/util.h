@@ -29,18 +29,33 @@ inline vector<string> string_split(const string &s, const string &c) {
 }
 
 enum TASK_NAME {
-    TaskEatEnemy,
+    TaskEatEnemy = 0,
     TaskExploreMap,
     TaskEatPower,
     TaskRunAway,
 };
 
+const static vector<string> TASK_NAME_STRING = {
+        "TaskEatEnemy",
+        "TaskExploreMap",
+        "TaskEatPower",
+        "TaskRunAway"
+};
+
 enum DIRECTION {
-    UP,
+    UP = 0,
     DOWN,
     LEFT,
     RIGHT,
     NONE,
+};
+
+const static  vector<string> DIRECTION_STRING = {
+        "UP   ",
+        "DOWN ",
+        "LEFT ",
+        "RIGHT",
+        "NONE "
 };
 
 class Point {
@@ -425,8 +440,16 @@ inline vector<pair<int, int>> get_vision_grids(int x, int y, int width, int heig
     return ret;
 };
 
-inline vector<pair<int, int>> get_vision_grids(Point::Ptr &loc, shared_ptr<LegStartInfo> leg_info) {
+inline vector<pair<int, int>> get_vision_grids(Point::Ptr &loc, const shared_ptr<LegStartInfo>& leg_info) {
     return get_vision_grids(loc->x, loc->y, leg_info->width, leg_info->height, leg_info->vision);
 };
+
+template<typename T>
+inline vector<int> sort_indexes(const std::vector<T> &v) {
+    vector<int> idx(v.size());
+    iota(idx.begin(), idx.end(), 0);
+    sort(idx.begin(), idx.end(), [&v](int i1, int i2) { return v[i1] < v[i2]; });
+    return idx;
+}
 
 #endif //AI_YANG_UTIL_H

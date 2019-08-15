@@ -81,11 +81,12 @@ BT::NodeStatus EatPower::tick() {
     uct.max_millis = 400;
     uct.simulation_depth = 10 * my_units_count;
     auto root_tree = uct.run(state);
-    log_info("iterations: %d/%d simulation_depth: %d run_millis: %.1f/%dms", uct.get_iterations(), uct.max_iterations, uct.simulation_depth, uct.run_millis, uct.max_millis);
+    log_info("iterations: %d/%d simulation_depth: %d run_millis: %.1f/%dms", uct.get_iterations(), uct.max_iterations,
+             uct.simulation_depth, uct.run_millis, uct.max_millis);
 
     vector<pair<map<int, DIRECTION>, double>> direction_score;
-    function<void(decltype(root_tree)&, pair<map<int, DIRECTION>, double>)> save_all_path;
-    save_all_path = [&](decltype(root_tree)& node, pair<map<int, DIRECTION>, double> _score) {
+    function<void(decltype(root_tree) &, pair<map<int, DIRECTION>, double>)> save_all_path;
+    save_all_path = [&](decltype(root_tree) &node, pair<map<int, DIRECTION>, double> _score) {
         if (node->get_parent()) {
             int node_id = node->get_parent()->get_state().agent_id();
             _score.first[my_units_id[node_id]] = node->get_action();
