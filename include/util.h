@@ -167,6 +167,10 @@ public:
         Floyd();
     }
 
+    int get_cost(int start, int end) {
+        return dist[start][end];
+    }
+
     int get_cost(const Point::Ptr &start, const Point::Ptr &end) {
         return dist[to_index(start)][to_index(end)];
     }

@@ -1,13 +1,12 @@
 import unittest
 import json
-from map_info import MapInfo, DIRECTION
+from map_info import MapInfo, DIRECTION, map_str_to_json
 
 
 class TestFunc(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        map_data = """"""
-        cls.map_info = MapInfo(json.loads(map_data))
+        cls.map_info = MapInfo(map_str_to_json("../../server/map_r2m1.txt"))
 
     def move_one_step(self, x, y, direction: DIRECTION):
         next_p = self.map_info.maps[x][y].next[direction]

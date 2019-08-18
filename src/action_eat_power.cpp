@@ -50,10 +50,36 @@ bool EatPowerState::get_random_action(DIRECTION &action) const {
     return true;
 }
 
-vector<double> EatPowerState::evaluate() const {
+vector<double> EatPowerState::evaluate() {
     vector<double> ret;
+    vector<int> power_loc;
+    for (auto loc : loc_power) {
+        power_loc.emplace_back(loc.first);
+    }
+    int i = 0;
+    for (int s_agent_loc : agent_loc) {
+        if (power_loc.empty()) {
+            break;
+        }
+        int min_cost_loc = -1;
+        int min_cost = numeric_limits<int>::max();
+        for (auto s_power_loc: power_loc) {
+            int cost = leg_info->path.get_cost(s_agent_loc, s_power_loc);
+            if (cost < min_cost) {
+                min_cost = cost;
+                min_cost_loc = s_power_loc;
+            }
+        }
+        power_loc.erase(find(power_loc.begin(), power_loc.end(), min_cost_loc));
+        if (loc_power.count(min_cost_loc) > 0) {
+            agent_loc_reward[i] = 1.0 * loc_power[min_cost_loc] / (double) (min_cost + 1);
+        }
+        i++;
+    }
+    i = 0;
     for (double reward : agent_reward) {
-        ret.emplace_back(reward / (round_id + 1));
+        ret.emplace_back(reward / (round_id + 1) + agent_loc_reward[i]);
+        i++;
     }
     return ret;
 }
@@ -69,6 +95,7 @@ BT::NodeStatus EatPower::tick() {
         my_units_id.emplace_back(mu.first);
         state.agent_loc.emplace_back(info->leg_info->path.to_index(mu.second->loc));
         state.agent_reward.emplace_back(0.0);
+        state.agent_loc_reward.emplace_back(0.0);
         my_units_count++;
     }
     state.agent_num = my_units_count;
@@ -78,8 +105,8 @@ BT::NodeStatus EatPower::tick() {
 
     mcts::UCT<EatPowerState, DIRECTION> uct;
     uct.max_iterations = 30000;
-    uct.max_millis = 400;
-    uct.simulation_depth = 10 * my_units_count;
+    uct.max_millis = 40;
+    uct.simulation_depth = 2 * my_units_count;
     auto root_tree = uct.run(state);
     log_info("iterations: %d/%d simulation_depth: %d run_millis: %.1f/%dms", uct.get_iterations(), uct.max_iterations,
              uct.simulation_depth, uct.run_millis, uct.max_millis);

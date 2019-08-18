@@ -136,7 +136,7 @@ BT::NodeStatus EatEnemy::tick() {
 
     mcts::UCT<EatEnemyState, DIRECTION> uct;
     uct.max_iterations = 30000;
-    uct.max_millis = 4000;
+    uct.max_millis = 40;
     uct.simulation_depth = 10 * units_count;
     auto root_tree = uct.run(state);
     log_info("iterations: %d/%d simulation_depth: %d run_millis: %.1f/%dms", uct.get_iterations(), uct.max_iterations,

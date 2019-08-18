@@ -29,7 +29,7 @@ class Point:
 
 
 class MapInfo:
-    def __init__(self, _map_json):
+    def __init__(self, _map_json, calculate_path=False):
         self.map_json = _map_json
         self.width = _map_json["width"]  # type: int
         self.height = _map_json["height"]  # type: int
@@ -42,7 +42,8 @@ class MapInfo:
                 self.maps[x][y] = Point(x, y)
         self.load_map()
         self.construct_map()
-        self.path = Path(self.maps, self.width, self.height)
+        if calculate_path:
+            self.path = Path(self.maps, self.width, self.height)
 
     def set_meteor(self, x: int, y: int):
         self.maps[x][y].wall = True
@@ -169,3 +170,46 @@ class Path:
                         self.dist[i][j] = self.dist[i][k] + self.dist[k][j]
                         self.path[i][j] = self.path[i][k]
 
+
+def map_str_to_json(file):
+    map_json = dict()
+    map_txt_json = json.loads(open(file, 'r').read().replace("\n", "").replace("\t", "").replace(" ", ""))
+    map_json["vision"] = map_txt_json["game"]["vision"]
+    width = map_txt_json["map"]["width"]
+    height = map_txt_json["map"]["height"]
+    map_json["width"] = width
+    map_json["height"] = height
+    meteor_list = list()
+    tunnel_list = list()
+    wormhole_list = list()
+    map_str = map_txt_json["map"]["map_str"].strip()
+    assert len(map_str) == width * height
+    for i, s in enumerate(map_str):
+        x = i % width
+        y = i // width
+        p = dict()
+        p["x"] = x
+        p["y"] = y
+        if s == "." or s == "X" or s == "O" or s.isdigit():
+            continue
+        if s == '#':
+            meteor_list.append(p)
+        elif s == "^":
+            p["direction"] = "up"
+            tunnel_list.append(p)
+        elif s == "v":
+            p["direction"] = "down"
+            tunnel_list.append(p)
+        elif s == "<":
+            p["direction"] = "left"
+            tunnel_list.append(p)
+        elif s == ">":
+            p["direction"] = "right"
+            tunnel_list.append(p)
+        else:
+            p["name"] = s
+            wormhole_list.append(p)
+    map_json["meteor"] = meteor_list
+    map_json["tunnel"] = tunnel_list
+    map_json["wormhole"] = wormhole_list
+    return map_json

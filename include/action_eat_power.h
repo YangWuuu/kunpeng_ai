@@ -22,11 +22,12 @@ public:
 
     bool get_random_action(DIRECTION &action) const;
 
-    vector<double> evaluate() const;
+    vector<double> evaluate();
 
     shared_ptr<LegStartInfo> leg_info;
     int agent_num{};
     vector<int> agent_loc;
+    vector<double> agent_loc_reward;
     vector<double> agent_reward;
     map<int, double> loc_power;
 
