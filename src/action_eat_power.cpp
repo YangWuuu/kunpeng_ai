@@ -87,50 +87,63 @@ vector<double> EatPowerState::evaluate() {
 BT::NodeStatus EatPower::tick() {
     auto info = config().blackboard->get<Player *>("info");
 
-    EatPowerState state;
-    state.leg_info = info->leg_info;
-    int my_units_count = 0;
-    vector<int> my_units_id;
-    for (auto &mu : info->round_info->my_units) {
-        my_units_id.emplace_back(mu.first);
-        state.agent_loc.emplace_back(info->leg_info->path.to_index(mu.second->loc));
-        state.agent_reward.emplace_back(0.0);
-        state.agent_loc_reward.emplace_back(0.0);
-        my_units_count++;
-    }
-    state.agent_num = my_units_count;
-    for (auto &power : info->round_info->powers) {
-        state.loc_power[info->leg_info->path.to_index(power.loc)] = (double) power.point;
+    map<int, double> map_power;
+    for (const auto &power : info->round_info->powers) {
+        map_power[info->leg_info->path.to_index(power.loc)] = power.point;
     }
 
-    mcts::UCT<EatPowerState, DIRECTION> uct;
-    uct.max_iterations = 30000;
-    uct.max_millis = 40;
-    uct.simulation_depth = 2 * my_units_count;
-    auto root_tree = uct.run(state);
-    log_info("iterations: %d/%d simulation_depth: %d run_millis: %.1f/%dms", uct.get_iterations(), uct.max_iterations,
-             uct.simulation_depth, uct.run_millis, uct.max_millis);
-
-    vector<pair<map<int, DIRECTION>, double>> direction_score;
-    function<void(decltype(root_tree) &, pair<map<int, DIRECTION>, double>)> save_all_path;
-    save_all_path = [&](decltype(root_tree) &node, pair<map<int, DIRECTION>, double> _score) {
-        if (node->get_parent()) {
-            int node_id = node->get_parent()->get_state().agent_id();
-            _score.first[my_units_id[node_id]] = node->get_action();
-            _score.second = _score.second + node->get_value() / node->get_num_visits();
-            if (node->get_state().round_id > 0) {
-                direction_score.emplace_back(_score);
-                return;
+    map<int, pair<int, int>> mu_time;
+    for (const auto &mu : info->round_info->my_units) {
+        mu_time[mu.first] = make_pair(0, info->leg_info->path.to_index(mu.second->loc));
+    }
+    map<int, int> mu_first_power;
+    for (const auto &power : map_power) {
+        int mu_id = 0;
+        int closest_loc = 0;
+        double shortest_dis = numeric_limits<double>::max();
+        for (const auto &mu : info->round_info->my_units) {
+            double dis = info->leg_info->path.get_cost(mu_time[mu.first].second, power.first) + mu_time[mu.first].first;
+            if (dis < shortest_dis) {
+                shortest_dis = dis;
+                mu_id = mu.first;
+                closest_loc = mu_time[mu.first].second;
             }
         }
-        int num_children = node->get_num_children();
-        for (int i = 0; i < num_children; i++) {
-            auto child = node->get_child(i);
-            save_all_path(child, _score);
+        if (mu_first_power.count(mu_id) == 0) {
+            mu_first_power[mu_id] = power.first;
         }
+        mu_time[mu_id].first += shortest_dis;
+        mu_time[mu_id].second = closest_loc;
+    }
+    struct dir_score {
+        dir_score(int _mu_id, DIRECTION _dir, double _score) :
+                mu_id(_mu_id), dir(_dir), score(_score) {}
+
+        int mu_id;
+        DIRECTION dir;
+        double score;
     };
-    pair<map<int, DIRECTION>, double> score;
-    save_all_path(root_tree, score);
+    vector<dir_score> single_direction_score;
+    for (const auto &mu : mu_first_power) {
+        for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
+            double cost = info->leg_info->path.get_cost(info->round_info->my_units[mu.first]->loc->next[d], mu.second);
+            double score = map_power[mu.second] / (cost + 1);
+            single_direction_score.emplace_back(dir_score(mu.first, d, score));
+        }
+    }
+
+    vector<pair<map<int, DIRECTION>, double>> direction_score;
+    for (int id = 0; id < info->task_score->score_num; id++) {
+        direction_score.emplace_back(make_pair(info->task_score->get_map_direction(id), 0.0));
+    }
+    for (const auto &sds : single_direction_score) {
+        for (auto &ds : direction_score) {
+            if (ds.first[sds.mu_id] == sds.dir) {
+                ds.second += sds.score;
+            }
+        }
+    }
+
     info->task_score->set_task_good_score(TASK_NAME::TaskEatPower, direction_score);
     return BT::NodeStatus::SUCCESS;
 }

@@ -14,11 +14,11 @@ BT::NodeStatus MakeDecision::tick() {
             out += string("TASK_NAME: ") + TASK_NAME_STRING[gc.first] + "\n";
             vector<int> idx = sort_indexes(gc.second);
             reverse(idx.begin(), idx.end());
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < min({10, (int)idx.size()}); i++) {
                 for (auto &md : info->task_score->get_map_direction(idx[i])) {
                     auto &mu = info->round_info->my_units[md.first];
                     if (mu) {
-                        out += to_string(md.first) + ": " + DIRECTION_STRING[md.second] + "  ";
+                        out += to_string(mu->id) + ": " + DIRECTION_STRING[md.second] + "  ";
                     }
                 }
                 out += to_string(gc.second[idx[i]]) + string("\n");

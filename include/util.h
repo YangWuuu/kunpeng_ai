@@ -171,6 +171,14 @@ public:
         return dist[start][end];
     }
 
+    int get_cost(const Point::Ptr &start, int end) {
+        return dist[to_index(start)][end];
+    }
+
+    int get_cost(int start, const Point::Ptr &end) {
+        return dist[start][to_index(end)];
+    }
+
     int get_cost(const Point::Ptr &start, const Point::Ptr &end) {
         return dist[to_index(start)][to_index(end)];
     }
@@ -201,6 +209,7 @@ public:
         return x + y * width;
     }
 
+    int node_num{};
 private:
     void Floyd() {
         for (int k = 0; k < node_num; k++) {
@@ -219,7 +228,7 @@ private:
     map<int, map<int, Point::Ptr>> *maps{};
     int height{};
     int width{};
-    int node_num{};
+
     const int inf = 0xffff;
     vector<vector<int>> G;
     vector<vector<int>> dist;
@@ -374,6 +383,7 @@ public:
         bad_score.clear();
         for (auto &mu : my_units) {
             my_units_map[mu.first] = my_units_count;
+            my_map_units[my_units_count] = mu.first;
             my_units_count++;
         }
         score_num = my_pow(5, my_units_count);
@@ -404,7 +414,7 @@ public:
     map<int, DIRECTION> get_map_direction(int id) {
         map<int, DIRECTION> ret;
         for (int i = 0; i < my_units_count; i++) {
-            ret[i] = DIRECTION(id / (my_pow(5, i)) % 5);
+            ret[my_map_units[i]] = DIRECTION(id / (my_pow(5, i)) % 5);
         }
         return ret;
     }
@@ -412,6 +422,7 @@ public:
 public:
     int my_units_count;
     map<int, int> my_units_map;
+    map<int, int> my_map_units;
     int score_num;
 
     map<TASK_NAME, vector<double>> good_score;
@@ -446,6 +457,14 @@ inline vector<pair<int, int>> get_vision_grids(int x, int y, int width, int heig
 
 inline vector<pair<int, int>> get_vision_grids(Point::Ptr &loc, const shared_ptr<LegStartInfo>& leg_info) {
     return get_vision_grids(loc->x, loc->y, leg_info->width, leg_info->height, leg_info->vision);
+};
+
+inline vector<pair<int, int>> get_vision_grids(Point::Ptr &loc, const shared_ptr<LegStartInfo>& leg_info, int vision) {
+    return get_vision_grids(loc->x, loc->y, leg_info->width, leg_info->height, vision);
+};
+
+inline vector<pair<int, int>> get_vision_grids(int x, int y, const shared_ptr<LegStartInfo>& leg_info, int vision) {
+    return get_vision_grids(x, y, leg_info->width, leg_info->height, vision);
 };
 
 template<typename T>

@@ -19,7 +19,7 @@ void Game::update_round_info(shared_ptr<RoundInfo> &round_info) {
     for (int i = 0; i < leg_info->width; i++) {
         for (int j = 0; j < leg_info->height; j++) {
             if (round_id - visit_time[i][j] > 15) {
-                env_score[i][j] = min(env_score_limit[i][j] / 40 * (round_id - 15 - visit_time[i][j]), env_score_limit[i][j]);
+                env_score[i][j] = min(env_score_limit[i][j] / 25 * (round_id - 15 - visit_time[i][j]), env_score_limit[i][j]);
             }
         }
     }
