@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <numeric>
 #include <random>
 
 using namespace std;

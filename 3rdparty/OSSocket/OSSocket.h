@@ -4,7 +4,7 @@
 // 如果是linux ，定义OS_POSIX
 //#define OS_WINDOWS
 
-#ifdef WIN32
+#ifdef _WIN32
 #define OS_WINDOWS
 #pragma comment(lib,"ws2_32.lib")
 #else

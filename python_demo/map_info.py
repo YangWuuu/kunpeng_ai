@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Dict, Union, List
 import json
+import numpy as np
+from numba import jit
 
 
 class DIRECTION(Enum):
@@ -150,10 +152,13 @@ class Path:
                     self.dist[i][j] = 1
                 else:
                     self.dist[i][j] = 0
-        self.floyd()
+        self.dist = floyd(self.node_num, np.array(self.dist), np.array(self.path)).tolist()
 
     def get_cost(self, start: Point, end: Point):
         return self.dist[self.to_index(start)][self.to_index(end)]
+
+    def get_cost_index(self, start: int, end: int):
+        return self.dist[start][end]
 
     def to_point(self, index: int) -> Point:
         return self.maps[index % self.width][index // self.width]
@@ -169,6 +174,17 @@ class Path:
                             and self.dist[k][j] != self.inf and i != j:
                         self.dist[i][j] = self.dist[i][k] + self.dist[k][j]
                         self.path[i][j] = self.path[i][k]
+
+
+@jit(nopython=True)
+def floyd(node_num, dist, path, inf=9999):
+    for k in range(node_num):
+        for i in range(node_num):
+            for j in range(node_num):
+                if dist[i][k] + dist[k][j] < dist[i][j] and dist[i][k] != inf and dist[k][j] != inf and i != j:
+                    dist[i][j] = dist[i][k] + dist[k][j]
+                    path[i][j] = path[i][k]
+    return dist
 
 
 def map_str_to_json(file):

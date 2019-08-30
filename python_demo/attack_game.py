@@ -3,10 +3,26 @@ import json
 import random
 from abc import abstractmethod
 from copy import deepcopy
-from typing import List, Dict
+import functools
+import itertools
+from typing import List, Dict, Set
 from map_info import MapInfo, Point, DIRECTION, map_str_to_json
 
 random.seed(2019)
+
+
+def get_input_action():
+    ss = input("Please input action: ").lower()
+    ret = DIRECTION.NONE
+    if ss == "w":
+        ret = DIRECTION.UP
+    elif ss == "s":
+        ret = DIRECTION.DOWN
+    elif ss == "a":
+        ret = DIRECTION.LEFT
+    elif ss == "d":
+        ret = DIRECTION.RIGHT
+    return ret
 
 
 class State:
@@ -48,7 +64,8 @@ class State:
             point = self.attack_agents.id_loc[idx]
             map_str[point.x][point.y] = "a{}".format(idx)
         return "\n".join(
-            ["".join([map_str[i][j] for i in range(self.map_info.width)]) for j in range(self.map_info.height)])
+            ["".join([map_str[i][j] for i in range(self.map_info.width)]) for j in range(self.map_info.height)]) + \
+               "\n{}\n{}".format(self.defence_agents.id_loc, self.attack_agents.id_loc)
 
     def apply_actions(self, actions: Dict[int, DIRECTION]):
         for agent_id in actions:
@@ -98,7 +115,7 @@ class DefenceAgents(Agents):
                 next_loc = self.id_loc[idx].next[direction]
                 for attack_idx in _state.attack_agents.id_loc:
                     if _state.map_info.path.get_cost(next_loc, _state.attack_agents.id_loc[attack_idx]) <= 1 or \
-                       _state.map_info.path.get_cost(_state.attack_agents.id_loc[attack_idx], next_loc) <= 1:
+                            _state.map_info.path.get_cost(_state.attack_agents.id_loc[attack_idx], next_loc) <= 1:
                         is_safe = False
                 if is_safe:
                     choices.append(direction)
@@ -108,31 +125,86 @@ class DefenceAgents(Agents):
                     next_loc = self.id_loc[idx].next[direction]
                     for attack_idx in _state.attack_agents.id_loc:
                         if _state.map_info.path.get_cost(next_loc, _state.attack_agents.id_loc[attack_idx]) <= 0 or \
-                           _state.map_info.path.get_cost(_state.attack_agents.id_loc[attack_idx], next_loc) <= 0:
+                                _state.map_info.path.get_cost(_state.attack_agents.id_loc[attack_idx], next_loc) <= 0:
                             is_safe = False
                     if is_safe and direction not in choices:
                         choices.append(direction)
             ret[idx] = random.choice(choices)
+            # ret[idx] = get_input_action()
         return ret
+
+
+def get_all_can_go_points(_state: State, attack_point_int: int, defence_point_int: int) -> Set[int]:
+    ret = set()
+    if attack_point_int != defence_point_int:
+        for i in range(_state.map_info.path.node_num):
+            p = _state.map_info.path.to_point(i)
+            if p.tunnel != DIRECTION.NONE or p.wall:
+                continue
+            if _state.map_info.path.get_cost_index(attack_point_int, i) == 0:
+                continue
+            if _state.map_info.path.get_cost_index(attack_point_int, i) > \
+                    _state.map_info.path.get_cost_index(defence_point_int, i):
+                ret.add(i)
+    return ret
+
+
+def get_all_can_go(_state: State, attack_locs: List[Point], defence_loc: Point):
+    tmp_list = list()
+    defence_loc_int = _state.map_info.path.to_index(defence_loc)
+    for attack_loc in attack_locs:
+        tmp_list.append(get_all_can_go_points(_state, _state.map_info.path.to_index(attack_loc), defence_loc_int))
+    return tmp_list
 
 
 class AttackAgents(Agents):
     def get_actions(self, _state: State):
         ret = dict()
-        for idx in self.id_loc:
-            choices = list()
-            min_cost_loc = None
-            min_cost = 9999
-            for defence_idx in _state.defence_agents.id_loc:
-                cost = _state.map_info.path.get_cost(self.id_loc[idx], _state.defence_agents.id_loc[defence_idx])
-                if cost < min_cost:
-                    min_cost = cost
-                    min_cost_loc = _state.defence_agents.id_loc[defence_idx]
-            for direction in [DIRECTION.UP, DIRECTION.DOWN, DIRECTION.LEFT, DIRECTION.RIGHT, DIRECTION.NONE]:
-                if _state.map_info.path.get_cost(self.id_loc[idx].next[direction], min_cost_loc) \
-                        < _state.map_info.path.get_cost(self.id_loc[idx], min_cost_loc):
-                    choices.append(direction)
-            ret[idx] = random.choice(choices)
+        # for idx in self.id_loc:
+        #     choices = list()
+        #     min_cost_loc = None
+        #     min_cost = 9999
+        #     for defence_idx in _state.defence_agents.id_loc:
+        #         cost = _state.map_info.path.get_cost(self.id_loc[idx], _state.defence_agents.id_loc[defence_idx])
+        #         if cost < min_cost:
+        #             min_cost = cost
+        #             min_cost_loc = _state.defence_agents.id_loc[defence_idx]
+        #     for direction in [DIRECTION.UP, DIRECTION.DOWN, DIRECTION.LEFT, DIRECTION.RIGHT, DIRECTION.NONE]:
+        #         if _state.map_info.path.get_cost(self.id_loc[idx].next[direction], min_cost_loc) \
+        #                 < _state.map_info.path.get_cost(self.id_loc[idx], min_cost_loc):
+        #             choices.append(direction)
+        #     ret[idx] = random.choice(choices)
+        directions = [DIRECTION.UP, DIRECTION.DOWN, DIRECTION.LEFT, DIRECTION.RIGHT, DIRECTION.NONE]
+        results = list()
+        for actions in itertools.product(directions, repeat=len(self.id_loc)):
+            for defence_idx in sorted(_state.defence_agents.id_loc.keys()):
+                i = 0
+                attack_locs = list()
+                for idx in sorted(self.id_loc.keys()):
+                    attack_locs.append(self.id_loc[idx].next[actions[i]])
+                    i += 1
+                tmp_results = list()
+                for defence_action in directions:
+                    defence_loc = _state.defence_agents.id_loc[defence_idx].next[defence_action]
+                    survival = 1
+                    for idx in sorted(self.id_loc.keys()):
+                        if defence_loc == self.id_loc[idx]:
+                            survival = 0
+                            break
+                    dis = [_state.map_info.path.get_cost(_, defence_loc) for _ in attack_locs]
+                    points = get_all_can_go(_state, attack_locs, defence_loc)
+                    intersection_points = functools.reduce(lambda x, y: x.intersection(y), points)
+                    tmp_results.append({"intersection_num": len(intersection_points), "dis_sum": sum(dis), "survival": survival,
+                                        "intersect_points": intersection_points, "points": points, "actions": actions,
+                                        "defence": defence_idx, "dis": dis, "defence_action": defence_action})
+                tmp_results = sorted(tmp_results, key=lambda x: (-x["survival"], -x["intersection_num"], -x["dis_sum"]))
+                results.append(tmp_results[0])
+        results = sorted(results, key=lambda x: (x["survival"], x["intersection_num"]))
+        print(results[0]["intersection_num"], results[0]["dis_sum"], results[0]["defence_action"])
+        i = 0
+        for idx in sorted(self.id_loc.keys()):
+            ret[idx] = results[0]["actions"][i]
+            i += 1
         return ret
 
 
@@ -147,12 +219,10 @@ class Game:
         while True:
             print("\n\nround id: {}:".format(self.round_id))
             print(self.state.show_map())
-            if self.round_id == 28:
-                print("test")
-            defence_actions = self.defence_agents.get_actions(self.state)
             attack_actions = self.attack_agents.get_actions(self.state)
-            print("defence actions: {}".format(defence_actions))
             print("attack actions: {}".format(attack_actions))
+            defence_actions = self.defence_agents.get_actions(self.state)
+            print("defence actions: {}".format(defence_actions))
             self.state.apply_actions(defence_actions)
             self.state.apply_actions(attack_actions)
             if self.state.game_over or self.round_id > 300:
@@ -164,13 +234,17 @@ class Game:
 
 def example():
     scene = [
-        {"id": 0, "x": 0, "y": 0, "is_attack": False},
+        {"id": 0, "x": 1, "y": 7, "is_attack": False},
+        {"id": 8, "x": 1, "y": 7, "is_attack": False},
+        {"id": 7, "x": 1, "y": 7, "is_attack": False},
+        {"id": 9, "x": 10, "y": 0, "is_attack": False},
         {"id": 1, "x": 15, "y": 5, "is_attack": True},
         {"id": 2, "x": 6, "y": 6, "is_attack": True},
-        # {"id": 3, "x": 7, "y": 7, "is_attack": True},
+        {"id": 3, "x": 7, "y": 7, "is_attack": True},
+        {"id": 4, "x": 7, "y": 7, "is_attack": True},
         # {"id": 4, "x": 8, "y": 8, "is_attack": True},
     ]
-    map_info = MapInfo(map_str_to_json("../../server/map_r2m1.txt"), calculate_path=True)
+    map_info = MapInfo(map_str_to_json("../../server/map_r2m6.txt"), calculate_path=True)
     defence_agents_loc = dict()
     attack_agents_loc = dict()
     for s in scene:

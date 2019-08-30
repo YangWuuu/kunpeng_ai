@@ -16,13 +16,8 @@ int main(int argc, char *argv[]) {
         log_error("Usage: %s [player_id] [serverIp] [serverPort]\n", argv[0]);
         return -1;
     }
-    bool debug = argc > 4 && string(argv[4]) == "debug";
-    FILE *fp = fopen("/var/log/battle.log", "w");
-    log_set_fp(fp);
-    if (!debug) {
-        log_set_quiet(true);
-    }
 
+    string log_path = "/var/log/battle_yangwuuu.log";
 #ifdef OS_WINDOWS
     // windows init
     WSADATA wsa;
@@ -31,7 +26,15 @@ int main(int argc, char *argv[]) {
         log_error("WSAStartup failed\n");
         return false;
     }
+    string log_path = "./battle_yangwuuu.log";
 #endif
+
+    bool debug = argc > 4 && string(argv[4]) == "debug";
+    FILE *fp = fopen(log_path.c_str(), "w");
+    log_set_fp(fp);
+    if (!debug) {
+        log_set_quiet(true);
+    }
 
     OS_SOCKET hSocket;
 
