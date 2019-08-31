@@ -33,14 +33,12 @@ BT::NodeStatus RunAway::tick() {
         }
     }
 
-    vector<pair<map<int, DIRECTION>, double>> direction_score;
-    for (int id = 0; id < info->task_score->score_num; id++) {
-        direction_score.emplace_back(make_pair(info->task_score->get_map_direction(id), 0.0));
-    }
-    for (auto &ds : direction_score) {
-        for (auto &map_dir : ds.first) {
+    vector<double> direction_score(info->task_score->score_num, 0.0);
+    for (int idx = 0; idx < info->task_score->score_num; idx++) {
+        map<int, DIRECTION> &map_direction = info->task_score->map_direction[idx];
+        for (auto &map_dir : map_direction) {
             auto next_point = info->round_info->my_units[map_dir.first]->loc->next[map_dir.second];
-            ds.second += map_danger[info->leg_info->path.to_index(next_point)];
+            direction_score[idx] += map_danger[next_point->index];
         }
     }
 

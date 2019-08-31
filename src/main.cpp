@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
         log_error("WSAStartup failed\n");
         return false;
     }
-    string log_path = "./battle_yangwuuu.log";
+    log_path = "./battle_yangwuuu.log";
 #endif
 
     bool debug = argc > 4 && string(argv[4]) == "debug";
@@ -35,6 +35,12 @@ int main(int argc, char *argv[]) {
     if (!debug) {
         log_set_quiet(true);
     }
+
+    string arg_string;
+    for (int i = 0; i < argc; i++) {
+        arg_string += string(argv[i]) + " ";
+    }
+    log_info("argv is %s", arg_string.c_str());
 
     OS_SOCKET hSocket;
 
@@ -57,13 +63,15 @@ int main(int argc, char *argv[]) {
 
     vector<int> time_vec_0;
     vector<int> time_vec_1;
+    int time_round = 0;
+    int time_all = 0;
     vector<string> leg_end_msgs;
     int recv_err_count = 0;
     while (true) {
         char buffer[99999] = {'\0'};
-        auto start_time_0 = chrono::system_clock::now();
+        auto start_time_all = chrono::system_clock::now();
         if (recv(hSocket, buffer, sizeof(buffer) - 1, 0)) {
-            auto start_time_1 = chrono::system_clock::now();
+            auto start_time_round = chrono::system_clock::now();
             cJSON *msgBuf = cJSON_Parse(buffer + 5);
             log_info("%s", buffer);
 
@@ -92,17 +100,19 @@ int main(int argc, char *argv[]) {
                 log_error("others");
             }
             auto end_time = chrono::system_clock::now();
-            auto duration_0 = chrono::duration_cast<chrono::milliseconds>(end_time - start_time_0);
-            auto duration_1 = chrono::duration_cast<chrono::milliseconds>(end_time - start_time_1);
-            time_vec_0.push_back((int) duration_0.count());
-            time_vec_1.push_back((int) duration_1.count());
-            log_info("round time cost: %ld/%ld ms\n\n", duration_1.count(), duration_0.count());
+            auto duration_all = chrono::duration_cast<chrono::milliseconds>(end_time - start_time_all);
+            auto duration_round = chrono::duration_cast<chrono::milliseconds>(end_time - start_time_round);
+            time_vec_0.push_back((int) duration_all.count());
+            time_vec_1.push_back((int) duration_round.count());
+            time_round += (int)duration_round.count();
+            time_all += (int)duration_all.count();
+            log_info("round time cost: %ld/%ld ms\n\n", duration_round.count(), duration_all.count());
         }
         if (recv_err_count > 20) {
             break;
         }
     }
-    log_info("max single time is %d/%d ms", *max_element(time_vec_1.begin(), time_vec_1.end()), *max_element(time_vec_0.begin(), time_vec_0.end()));
+    log_info("max single time is %d/%d ms round/all: %d/%dms\n", *max_element(time_vec_1.begin(), time_vec_1.end()), *max_element(time_vec_0.begin(), time_vec_0.end()), time_round, time_all);
     for (string &s : leg_end_msgs) {
         log_info(s.c_str());
     }

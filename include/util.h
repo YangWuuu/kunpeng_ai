@@ -63,8 +63,8 @@ class Point {
 public:
     using Ptr = shared_ptr<Point>;
 
-    static Point::Ptr gen(int _x, int _y) {
-        return make_shared<Point>(_x, _y);
+    static Point::Ptr gen(int _x, int _y, int _index) {
+        return make_shared<Point>(_x, _y, _index);
     }
 
     static int distance(const Ptr &p1, const Ptr &p2) {
@@ -75,8 +75,9 @@ public:
         return max(abs(p1->x - p2->x), abs(p1->y - p2->y));
     }
 
-    explicit Point(int _x, int _y) : x(_x), y(_y), tunnel(DIRECTION::NONE), wall(false), wormhole(nullptr),
-                                     visited(false) {
+    explicit Point(int _x, int _y, int _index) : 
+        x(_x), y(_y), index(_index), tunnel(DIRECTION::NONE), wall(false), wormhole(nullptr), visited(false) 
+    {
         next[DIRECTION::UP] = nullptr;
         next[DIRECTION::DOWN] = nullptr;
         next[DIRECTION::LEFT] = nullptr;
@@ -87,6 +88,7 @@ public:
 public:
     int x;
     int y;
+    int index;
     DIRECTION tunnel;
     bool wall;
     Ptr wormhole;
@@ -142,29 +144,31 @@ public:
 
 class Path {
 public:
-    void setMap(map<int, map<int, Point::Ptr>> *_maps, int _width, int _height) {
-        maps = _maps;
+    void setWidthHeight(int _width, int _height) {
         width = _width;
         height = _height;
         node_num = width * height;
+    }
+
+    void setMap(map<int, map<int, Point::Ptr>> *_maps) {
+        maps = _maps;
         path = vector<vector<int>>(node_num, vector<int>(node_num, 0));
         for (int i = 0; i < node_num; i++) {
             for (int j = 0; j < node_num; j++) {
                 path[i][j] = j;
             }
         }
-        G = vector<vector<int>>(node_num, vector<int>(node_num, inf));
+        dist = vector<vector<int>>(node_num, vector<int>(node_num, inf));
         for (int i = 0; i < node_num; i++) {
             for (auto &dp : to_point(i)->next) {
                 int j = to_index(dp.second);
                 if (i != j) {
-                    G[i][j] = 1;
+                    dist[i][j] = 1;
                 } else if (i == j) {
-                    G[i][j] = 0;
+                    dist[i][j] = 0;
                 }
             }
         }
-        dist = G;
         Floyd();
     }
 
@@ -184,26 +188,9 @@ public:
         return dist[to_index(start)][to_index(end)];
     }
 
-    DIRECTION find_next_direction(const Point::Ptr &start, const Point::Ptr &end) {
-        DIRECTION ret = DIRECTION::NONE;
-        int i = to_index(start);
-        int j = to_index(end);
-        for (auto &dp : start->next) {
-            if (dp.second == to_point(path[i][j])) {
-                ret = dp.first;
-                break;
-            }
-        }
-        return ret;
-    }
-
 public:
     Point::Ptr to_point(int index) {
         return (*maps)[index % width][index / width];
-    }
-
-    int to_index(const Point::Ptr &point) {
-        return point->x + point->y * width;
     }
 
     int to_index(int x, int y) {
@@ -211,7 +198,12 @@ public:
     }
 
     int node_num{};
+
 private:
+    int to_index(const Point::Ptr& point) {
+        return point->x + point->y * width;
+    }
+
     void Floyd() {
         for (int k = 0; k < node_num; k++) {
             for (int i = 0; i < node_num; i++) {
@@ -231,7 +223,6 @@ private:
     int width{};
 
     const int inf = 0xffff;
-    vector<vector<int>> G;
     vector<vector<int>> dist;
     vector<vector<int>> path;
 };
@@ -261,10 +252,11 @@ public:
         width = w;
         height = h;
         vision = v;
+        path.setWidthHeight(width, height);
         for (int i = 0; i < width; i++) {
             map<int, Point::Ptr> tmp;
             for (int j = 0; j < height; j++) {
-                tmp[j] = Point::gen(i, j);
+                tmp[j] = Point::gen(i, j, path.to_index(i, j));
             }
             maps[i] = move(tmp);
         }
@@ -289,7 +281,8 @@ public:
                 }
             }
         }
-        path.setMap(&maps, width, height);
+        path.setMap(&maps);
+        cal_vision_grids();
     }
 
     Point::Ptr around_with_meteor_one_step(const Point::Ptr &p, DIRECTION d) {
@@ -356,6 +349,20 @@ public:
         }
     }
 
+    void cal_vision_grids() {
+        vision_grids = vector<vector<int>>(path.node_num, vector<int>());
+        for (int n = 0; n < path.node_num; n++) {
+            auto p = path.to_point(n);
+            int x = p->x;
+            int y = p->y;
+            for (int i = max(x - vision, 0); i <= min(x + vision, width - 1); i++) {
+                for (int j = max(y - vision, 0); j <= min(y + vision, height - 1); j++) {
+                    vision_grids[n].emplace_back(path.to_index(i, j));
+                }
+            }
+        }
+    }
+
 public:
     int width;
     int height;
@@ -364,6 +371,7 @@ public:
     Path path;
     Team my_team;
     Team enemy_team;
+    vector<vector<int>> vision_grids;
 };
 
 inline int my_pow(int base, int exp) {
@@ -388,36 +396,26 @@ public:
             my_units_count++;
         }
         score_num = my_pow(5, my_units_count);
+        get_map_direction();
     }
 
-    void set_task_good_score(TASK_NAME task_name, vector<pair<map<int, DIRECTION>, double>> &direction_score) {
-        set_task_score(good_score, task_name, direction_score);
+    void set_task_good_score(TASK_NAME task_name, vector<double> &direction_score) {
+        good_score[task_name] = move(direction_score);
     }
 
-    void set_task_bad_score(TASK_NAME task_name, vector<pair<map<int, DIRECTION>, double>> &direction_score) {
-        set_task_score(bad_score, task_name, direction_score);
+    void set_task_bad_score(TASK_NAME task_name, vector<double> &direction_score) {
+        bad_score[task_name] = move(direction_score);
     }
 
-    void set_task_score(map<TASK_NAME, vector<double>> &score, TASK_NAME task_name,
-                        vector<pair<map<int, DIRECTION>, double>> &direction_score) {
-        if (score.count(task_name) == 0) {
-            score[task_name] = vector<double>(score_num, 0.0);
-        }
-        for (auto &ds : direction_score) {
-            int id = 0;
-            for (auto &unit_direction : ds.first) {
-                id += my_pow(5, my_units_map[unit_direction.first]) * (int) unit_direction.second;
+    void get_map_direction() {
+        map_direction.clear();
+        for (int id = 0; id < score_num; id++) {
+            map<int, DIRECTION> ret;
+            for (int i = 0; i < my_units_count; i++) {
+                ret[my_map_units[i]] = DIRECTION(id / (my_pow(5, i)) % 5);
             }
-            score[task_name][id] = ds.second;
+            map_direction.emplace_back(ret);
         }
-    }
-
-    map<int, DIRECTION> get_map_direction(int id) {
-        map<int, DIRECTION> ret;
-        for (int i = 0; i < my_units_count; i++) {
-            ret[my_map_units[i]] = DIRECTION(id / (my_pow(5, i)) % 5);
-        }
-        return ret;
     }
 
 public:
@@ -426,47 +424,15 @@ public:
     map<int, int> my_map_units;
     int score_num;
 
+    vector<map<int, DIRECTION>> map_direction;
+
     map<TASK_NAME, vector<double>> good_score;
     map<TASK_NAME, vector<double>> bad_score;
 };
 
-inline bool
-in_vision(const map<int, Unit::Ptr> &my_units, const Point::Ptr &loc, const shared_ptr<LegStartInfo> &leg_info) {
-    bool ret = false;
-    for (auto &mu : my_units) {
-        if (Point::distance(mu.second->loc, loc) <= leg_info->vision) {
-            ret = true;
-            break;
-        }
-    }
-    return ret;
-}
-
 inline bool equal_double(double a, double b) {
     return abs(a - b) < 1e-6;
 }
-
-inline vector<pair<int, int>> get_vision_grids(int x, int y, int width, int height, int vision) {
-    vector<pair<int, int>> ret;
-    for (int i = max(x - vision, 0); i <= min(x + vision, width - 1); i++) {
-        for (int j = max(y - vision, 0); j <= min(y + vision, height - 1); j++) {
-            ret.emplace_back(make_pair(i, j));
-        }
-    }
-    return ret;
-};
-
-inline vector<pair<int, int>> get_vision_grids(Point::Ptr &loc, const shared_ptr<LegStartInfo>& leg_info) {
-    return get_vision_grids(loc->x, loc->y, leg_info->width, leg_info->height, leg_info->vision);
-};
-
-inline vector<pair<int, int>> get_vision_grids(Point::Ptr &loc, const shared_ptr<LegStartInfo>& leg_info, int vision) {
-    return get_vision_grids(loc->x, loc->y, leg_info->width, leg_info->height, vision);
-};
-
-inline vector<pair<int, int>> get_vision_grids(int x, int y, const shared_ptr<LegStartInfo>& leg_info, int vision) {
-    return get_vision_grids(x, y, leg_info->width, leg_info->height, vision);
-};
 
 template<typename T>
 inline vector<int> sort_indexes(const std::vector<T> &v) {

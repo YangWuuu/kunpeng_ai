@@ -149,4 +149,59 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
     }
 }
 
+void log_log_without_file_name(int level, const char* fmt, ...)
+{
+    if (level < L.level) {
+        return;
+    }
+
+    using namespace std::chrono;
+    time_point<high_resolution_clock> clock_now = high_resolution_clock::now();
+    {
+        unique_lock<mutex> lock_global(global_log_mutex);
+        /* Acquire lock */
+        lock();
+
+        /* Get current time */
+        time_t t = time(nullptr);
+        struct tm* lt = localtime(&t);
+
+        /* Log to stderr */
+        if (!L.quiet) {
+            va_list args;
+            char buf[16];
+            buf[strftime(buf, sizeof(buf), "%H:%M:%S", lt)] = '\0';
+#ifdef LOG_USE_COLOR
+            fprintf(
+                stderr, "%s %s%-5s\x1b[0m \x1b[90m(ts: %.6lf):\x1b[0m ",
+                buf, level_colors[level], level_names[level],
+                duration_cast<nanoseconds>(clock_now.time_since_epoch()).count() / 1000000000.0);
+#else
+            fprintf(stderr, "%s %-5s (ts: %.6lf) %s:%d: ", buf, level_names[level],
+                duration_cast<nanoseconds>(clock_now.time_since_epoch()).count() /
+                1000000000.0, file, line);
+#endif
+            va_start(args, fmt);
+            vfprintf(stderr, fmt, args);
+            va_end(args);
+            fprintf(stderr, "\n");
+        }
+
+        /* Log to file */
+        if (L.fp) {
+            va_list args;
+            char buf[32];
+            buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", lt)] = '\0';
+            fprintf(L.fp, "%s %-5s (ts: %.6lf): ", buf, level_names[level], duration_cast<nanoseconds>(clock_now.time_since_epoch()).count() / 1000000000.0);
+            va_start(args, fmt);
+            vfprintf(L.fp, fmt, args);
+            va_end(args);
+            fprintf(L.fp, "\n");
+        }
+
+        /* Release lock */
+        unlock();
+    }
+}
+
 #endif

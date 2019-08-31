@@ -1,11 +1,10 @@
 #include "player.h"
 
 void Player::message_leg_start(cJSON *msg) {
-    if (!leg_info) {
-        leg_info = make_shared<LegStartInfo>();
-    } else {
+    if (leg_info) {
         prev_leg_info = leg_info;
     }
+    leg_info = make_shared<LegStartInfo>();
     if (!round_info) {
         round_info = make_shared<RoundInfo>();
     }

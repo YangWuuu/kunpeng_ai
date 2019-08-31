@@ -11,15 +11,13 @@ using namespace std;
 class Game : public enable_shared_from_this<Game> {
 public:
     explicit Game(shared_ptr<LegStartInfo> &_leg) : leg_info(_leg), round_id(0), is_eat(false) {
-        power_score = vector<vector<double>>(leg_info->width, vector<double>(leg_info->height, 0.0));
-        env_score_limit = vector<vector<double>>(leg_info->width, vector<double>(leg_info->height, 0.0));
-        visit_time = vector<vector<int>>(leg_info->width, vector<int>(leg_info->height, 0));
-        for (int i = 0; i < leg_info->width; i++) {
-            for (int j = 0; j < leg_info->height; j++) {
-                Point::Ptr point = leg_info->maps[i][j];
-                if (!point->wall && point->tunnel == DIRECTION::NONE && !point->wormhole) {
-                    env_score_limit[i][j] = 1.0 / (my_pow(2 * leg_info->vision + 1, 2));
-                }
+        power_score = vector<double>(leg_info->path.node_num, 0.0);
+        env_score_limit = vector<double>(leg_info->path.node_num, 0.0);
+        visit_time = vector<int>(leg_info->path.node_num, 0);
+        for (int n = 0; n < leg_info->path.node_num; n++) {
+            Point::Ptr point = leg_info->path.to_point(n);
+            if (!point->wall && point->tunnel == DIRECTION::NONE && !point->wormhole) {
+                env_score_limit[n] = 1.0 / (my_pow(2 * leg_info->vision + 1, 2));
             }
         }
         env_score = env_score_limit;
@@ -35,10 +33,10 @@ public:
     map<int, Unit::Ptr> enemy_units;
     int round_id;
     bool is_eat;
-    vector<vector<double>> power_score;
-    vector<vector<double>> env_score;
-    vector<vector<double>> env_score_limit;
-    vector<vector<int>> visit_time;
+    vector<double> power_score;
+    vector<double> env_score;
+    vector<double> env_score_limit;
+    vector<int> visit_time;
 };
 
 #endif //AI_YANG_GAME_H

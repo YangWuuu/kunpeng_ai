@@ -48,11 +48,10 @@ public:
         factory.registerNodeType<RunAway>("RunAway");
 
         tree = factory.createTreeFromText(xml_text, blackboard);
-        if (debug) {
-//            printTreeRecursively(tree.root_node);
-            logger_cout.setTree(tree);
-            logger_file.setTree(tree, "bt_trace.fbl");
-        }
+        logger_cout.setTree(tree);
+        //if (debug) {
+        //    logger_file.setTree(tree, "bt_trace.fbl");
+        //}
     }
 
     ~Player() = default;
