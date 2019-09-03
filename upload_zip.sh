@@ -6,11 +6,13 @@ if [ "$1" == "make" ]; then
     cd build
     cmake ..
     make
+    cd ..
+    echo "make done"
 fi
 upload_zip="yangwuuu.zip"
 if [ -f $upload_zip ]; then
     rm $upload_zip
 fi
-chomod +x gameclient.sh
+chmod +x gameclient.sh
 zip -r $upload_zip "bin/ai_yang" "gameclient.sh"
 
