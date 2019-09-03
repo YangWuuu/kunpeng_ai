@@ -30,7 +30,7 @@ NodeStatus ReactiveSequence::tick()
             case NodeStatus::RUNNING:
             {
                 running_count++;
-                haltChildren(index+1);
+                haltChildren((unsigned int)index+1);
                 return NodeStatus::RUNNING;
             }
 

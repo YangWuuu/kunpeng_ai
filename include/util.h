@@ -5,8 +5,13 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <queue>
 #include <numeric>
 #include <random>
+#include <sstream>
+#include <algorithm>
+
+#include "log.h"
 
 using namespace std;
 
@@ -51,7 +56,7 @@ enum DIRECTION {
     NONE,
 };
 
-const static  vector<string> DIRECTION_STRING = {
+const static vector<string> DIRECTION_STRING = {
         "UP   ",
         "DOWN ",
         "LEFT ",
@@ -75,9 +80,8 @@ public:
         return max(abs(p1->x - p2->x), abs(p1->y - p2->y));
     }
 
-    explicit Point(int _x, int _y, int _index) : 
-        x(_x), y(_y), index(_index), tunnel(DIRECTION::NONE), wall(false), wormhole(nullptr), visited(false) 
-    {
+    explicit Point(int _x, int _y, int _index) :
+            x(_x), y(_y), index(_index), tunnel(DIRECTION::NONE), wall(false), wormhole(nullptr), visited(false) {
         next[DIRECTION::UP] = nullptr;
         next[DIRECTION::DOWN] = nullptr;
         next[DIRECTION::LEFT] = nullptr;
@@ -158,18 +162,19 @@ public:
                 path[i][j] = j;
             }
         }
-        dist = vector<vector<int>>(node_num, vector<int>(node_num, inf));
+        G = vector<vector<int>>(node_num, vector<int>(node_num, inf));
         for (int i = 0; i < node_num; i++) {
             for (auto &dp : to_point(i)->next) {
                 int j = to_index(dp.second);
                 if (i != j) {
-                    dist[i][j] = 1;
+                    G[i][j] = 1;
                 } else if (i == j) {
-                    dist[i][j] = 0;
+                    G[i][j] = 0;
                 }
             }
         }
         Floyd();
+//        SPFA();
     }
 
     int get_cost(int start, int end) {
@@ -197,14 +202,152 @@ public:
         return x + y * width;
     }
 
+    static void vec_intersection(const vector<int> &vec_a, const vector<int> &vec_b, vector<int> &index_vec) {
+        auto first_a = vec_a.begin();
+        auto first_b = vec_b.begin();
+        while (first_a != vec_a.end() && first_b != vec_b.end()) {
+            if (*first_a < *first_b)
+                ++first_a;
+            else if (*first_a > *first_b)
+                ++first_b;
+            else
+            {
+                index_vec.emplace_back(*first_a);
+                ++first_a;
+                ++first_b;
+            }
+        }
+    }
+
+    vector<int> get_intersection1(int attack_index1, int defence_index) {
+        int key1 = attack_index1 * node_num + defence_index;
+        auto it1 = map_intersection_index1.find(key1);
+        if (it1 != map_intersection_index1.end()) {
+            return it1->second;
+        }
+        vector<int> &reach_index_vec = map_intersection_index1[key1];
+        for (int tmp_index = 0; tmp_index < node_num; tmp_index++) {
+            if (get_cost(defence_index, tmp_index) < get_cost(attack_index1, tmp_index)) {
+                reach_index_vec.emplace_back(tmp_index);
+            }
+        }
+        return reach_index_vec;
+    }
+
+    vector<int> get_intersection2(int attack_index1, int attack_index2, int defence_index) {
+        int key1 = attack_index1 * node_num + defence_index;
+        int key2 = attack_index2 * node_num + defence_index;
+        auto it1 = map_intersection_index2.find(key1);
+        if (it1 != map_intersection_index2.end()) {
+            auto it2 = it1->second.find(key2);
+            if (it2 != it1->second.end()) {
+                return it2->second;
+            }
+        }
+        vector<int> &reach_index_vec = map_intersection_index2[key1][key2];
+        const vector<int> &reach_index_vec_a = get_intersection1(attack_index1, defence_index);
+        const vector<int> &reach_index_vec_b = get_intersection1(attack_index2, defence_index);
+        vec_intersection(reach_index_vec_a, reach_index_vec_b, reach_index_vec);
+        return reach_index_vec;
+    }
+
+    vector<int> get_intersection3(int attack_index1, int attack_index2, int attack_index3, int defence_index) {
+        int key1 = attack_index1 * node_num + defence_index;
+        int key2 = attack_index2 * node_num + defence_index;
+        int key3 = attack_index3 * node_num + defence_index;
+        auto it1 = map_intersection_index3.find(key1);
+        if (it1 != map_intersection_index3.end()) {
+            auto it2 = it1->second.find(key2);
+            if (it2 != it1->second.end()) {
+                auto it3 = it2->second.find(key3);
+                if (it3 != it2->second.end()) {
+                    return it3->second;
+                }
+            }
+        }
+        vector<int> &reach_index_vec = map_intersection_index3[key1][key2][key3];
+        const vector<int> &reach_index_vec_a = get_intersection1(attack_index1, defence_index);
+        const vector<int> &reach_index_vec_b = get_intersection2(attack_index2, attack_index3, defence_index);
+        vec_intersection(reach_index_vec_a, reach_index_vec_b, reach_index_vec);
+        return reach_index_vec;
+    }
+
+    vector<int> get_intersection4(int attack_index1, int attack_index2, int attack_index3, int attack_index4, int defence_index) {
+        int key1 = attack_index1 * node_num + defence_index;
+        int key2 = attack_index2 * node_num + defence_index;
+        int key3 = attack_index3 * node_num + defence_index;
+        int key4 = attack_index3 * node_num + defence_index;
+        auto it1 = map_intersection_index4.find(key1);
+        if (it1 != map_intersection_index4.end()) {
+            auto it2 = it1->second.find(key2);
+            if (it2 != it1->second.end()) {
+                auto it3 = it2->second.find(key3);
+                if (it3 != it2->second.end()) {
+                    auto it4 = it3->second.find(key4);
+                    if (it4 != it3->second.end()) {
+                        return it4->second;
+                    }
+                }
+            }
+        }
+        vector<int> &reach_index_vec = map_intersection_index4[key1][key2][key3][key4];
+        const vector<int> &reach_index_vec_a = get_intersection2(attack_index1, attack_index2, defence_index);
+        const vector<int> &reach_index_vec_b = get_intersection2(attack_index3, attack_index4, defence_index);
+        vec_intersection(reach_index_vec_a, reach_index_vec_b, reach_index_vec);
+        return reach_index_vec;
+    }
+
+    vector<int> get_intersection(const vector<int> &attack_index_vec, int defence_index) {
+        if (attack_index_vec.empty()) {
+            log_error("attack_index_vec is empty");
+            return vector<int>();
+        } else if (attack_index_vec.size() == 1) {
+            return get_intersection1(attack_index_vec[0], defence_index);
+        } else if (attack_index_vec.size() == 2) {
+            return get_intersection2(attack_index_vec[0], attack_index_vec[1], defence_index);
+        } else if (attack_index_vec.size() == 3) {
+            return get_intersection3(attack_index_vec[0], attack_index_vec[1], attack_index_vec[2], defence_index);
+        } else if (attack_index_vec.size() == 4) {
+            return get_intersection4(attack_index_vec[0], attack_index_vec[1], attack_index_vec[2], attack_index_vec[3], defence_index);
+        } else {
+            log_error("attack_index_vec is too large: %d", attack_index_vec.size());
+            return vector<int>();
+        }
+    }
+
+    int get_intersection_size(const vector<int> &attack_index_vec, int defence_index) {
+        int remain_loc_num = 0;
+        for (int tmp_loc = 0; tmp_loc < node_num; tmp_loc++) {
+            int enemy_dis = get_cost(defence_index, tmp_loc);
+            bool in_reach = false;
+            for (auto& nl : attack_index_vec) {
+                int tmp_dis = get_cost(nl, tmp_loc);
+                if (tmp_dis <= enemy_dis) {
+                    in_reach = true;
+                    break;
+                }
+            }
+            if (!in_reach) {
+                remain_loc_num++;
+            }
+        }
+        return remain_loc_num;
+    }
+
+    int get_intersection_size2(const vector<int> &attack_index_vec, int defence_index) {
+        const vector<int> &intersection = get_intersection(attack_index_vec, defence_index);
+        return (int)intersection.size();
+    }
+
     int node_num{};
 
 private:
-    int to_index(const Point::Ptr& point) {
+    int to_index(const Point::Ptr &point) {
         return point->x + point->y * width;
     }
 
     void Floyd() {
+        dist = G;
         for (int k = 0; k < node_num; k++) {
             for (int i = 0; i < node_num; i++) {
                 for (int j = 0; j < node_num; j++) {
@@ -218,13 +361,54 @@ private:
         }
     }
 
+    void SPFA() {
+        dist.resize(node_num, vector<int>(node_num, inf));
+        for (int k = 0; k < node_num; k++) {
+            Point::Ptr point = to_point(k);
+            if (point->wall || point->tunnel != DIRECTION::NONE || point->wormhole) {
+                continue;
+            }
+            queue<int> Q;
+            vector<bool> is_in_Q(node_num, false);
+
+            Q.push(k);
+            is_in_Q[k] = true;
+            dist[k][k] = 0;
+            while (!Q.empty()) {
+                int u = Q.front();
+                Q.pop();
+                is_in_Q[u] = false;
+                for (int v = 0; v < node_num; ++v)
+                    if (relax(u, v, dist[k]) && !is_in_Q[v]) {
+                        Q.push(v);
+                        is_in_Q[v] = true;
+                    }
+            }
+        }
+    }
+
+    inline bool relax(int u, int v, vector<int> &d) {
+        int nlen = d[u] + G[u][v];
+        if (nlen < d[v]) {
+            d[v] = nlen;
+            return true;
+        }
+        return false;
+    }
+
     map<int, map<int, Point::Ptr>> *maps{};
     int height{};
     int width{};
 
     const int inf = 0xffff;
+    vector<vector<int>> G;
     vector<vector<int>> dist;
     vector<vector<int>> path;
+
+    map<int, vector<int>> map_intersection_index1;
+    map<int, map<int, vector<int>>> map_intersection_index2;
+    map<int, map<int, map<int, vector<int>>>> map_intersection_index3;
+    map<int, map<int, map<int, map<int, vector<int>>>>> map_intersection_index4;
 };
 
 class RoundInfo {
@@ -339,13 +523,11 @@ public:
                 q->next[DIRECTION::NONE] = next_p;
             }
             return next_p;
-        } else if (next_p->next[DIRECTION::NONE] != next_p) {
+        } else {
             for (Point::Ptr &q : vec_p) {
                 q->next[DIRECTION::NONE] = next_p->next[DIRECTION::NONE];
             }
             return next_p->next[DIRECTION::NONE];
-        } else {
-            // TODO loop
         }
     }
 
@@ -386,17 +568,28 @@ inline int my_pow(int base, int exp) {
 class TaskScore {
 public:
     void init_every_round(const map<int, Unit::Ptr> &my_units) {
-        my_units_map.clear();
-        my_units_count = 0;
         good_score.clear();
         bad_score.clear();
+        int now_units_id = 0;
         for (auto &mu : my_units) {
-            my_units_map[mu.first] = my_units_count;
-            my_map_units[my_units_count] = mu.first;
-            my_units_count++;
+            now_units_id += my_pow(8, mu.first);
         }
-        score_num = my_pow(5, my_units_count);
-        get_map_direction();
+        if (now_units_id != last_units_id) {
+            last_units_id = now_units_id;
+            my_units_map.clear();
+            my_map_units.clear();
+            my_units_count = 0;
+            for (auto &mu : my_units) {
+                my_units_map[mu.first] = my_units_count;
+                my_map_units[my_units_count] = mu.first;
+                my_units_count++;
+            }
+            score_num = my_pow(5, my_units_count);
+            if (my_units_count == 0) {
+                score_num = 0;
+            }
+            get_map_direction();
+        }
     }
 
     void set_task_good_score(TASK_NAME task_name, vector<double> &direction_score) {
@@ -428,6 +621,9 @@ public:
 
     map<TASK_NAME, vector<double>> good_score;
     map<TASK_NAME, vector<double>> bad_score;
+
+private:
+    int last_units_id{-1};
 };
 
 inline bool equal_double(double a, double b) {

@@ -14,8 +14,8 @@
 #include "behaviortree_cpp/loggers/bt_cout_logger.h"
 #include "xml_tree.h"
 #include "game.h"
-#include "customAction.h"
 #include "assign_task.h"
+#include "predict_enemy.h"
 #include "action_eat_enemy.h"
 #include "action_eat_power.h"
 #include "action_explore_map.h"
@@ -33,13 +33,13 @@ public:
         leg_info = nullptr;
         prev_leg_info = nullptr;
         round_info = nullptr;
+        prev_round_info = nullptr;
         game = nullptr;
         blackboard = BT::Blackboard::create();
         blackboard->set("info", this);
         BT::BehaviorTreeFactory factory;
 
         factory.registerNodeType<AssignTask>("AssignTask");
-        factory.registerNodeType<CalculateShortestPath>("CalculateShortestPath");
         factory.registerNodeType<EatEnemy>("EatEnemy");
         factory.registerNodeType<EatPower>("EatPower");
         factory.registerNodeType<ExploreMap>("ExploreMap");
@@ -70,8 +70,10 @@ public:
     shared_ptr<LegStartInfo> leg_info;
     shared_ptr<LegStartInfo> prev_leg_info;
     shared_ptr<RoundInfo> round_info;
+    shared_ptr<RoundInfo> prev_round_info;
     shared_ptr<Game> game;
     shared_ptr<TaskScore> task_score;
+    shared_ptr<TaskScore> enemy_task_score;
 
     BT::Tree tree;
     BT::Blackboard::Ptr blackboard;

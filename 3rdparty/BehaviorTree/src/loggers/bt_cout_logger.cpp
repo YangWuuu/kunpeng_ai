@@ -27,7 +27,7 @@ namespace BT {
         constexpr const char *whitespaces = "                         ";
         constexpr const size_t ws_count = 25;
 
-        double since_epoch = duration<double>(timestamp).count();
+//        double since_epoch = duration<double>(timestamp).count();
         log_info_w("%s%s %s -> %s",
                node.name().c_str(),
                &whitespaces[std::min(ws_count, node.name().size())],

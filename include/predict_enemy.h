@@ -1,6 +1,5 @@
-#ifndef AI_YANG_CUSTOMACTION_H
-#define AI_YANG_CUSTOMACTION_H
-
+#ifndef AI_YANG_PREDICT_ENEMY_H
+#define AI_YANG_PREDICT_ENEMY_H
 
 #include <string>
 
@@ -8,14 +7,6 @@
 #include "behaviortree_cpp/behavior_tree.h"
 
 using namespace std;
-
-class CalculateShortestPath : public BT::SyncActionNode {
-public:
-    explicit CalculateShortestPath(const string &name, const BT::NodeConfiguration& config) :
-            SyncActionNode(name, config) {}
-
-    BT::NodeStatus tick() override;
-};
 
 class PredictEnemyNowLoc : public BT::SyncActionNode {
 public:
@@ -25,4 +16,4 @@ public:
     BT::NodeStatus tick() override;
 };
 
-#endif //AI_YANG_CUSTOMACTION_H
+#endif //AI_YANG_PREDICT_ENEMY_H

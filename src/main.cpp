@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     while (OSCreateSocket(argv[2], (unsigned) std::stoul(argv[3]), &hSocket) != 0) {
         log_error("wait 10ms to restart connect");
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    };
+    }
 
     log_info("connect server success\n");
 
@@ -65,6 +65,10 @@ int main(int argc, char *argv[]) {
     vector<int> time_vec_1;
     int time_round = 0;
     int time_all = 0;
+    int avg_time_round_count = 0;
+    int avg_time_leg_start_count = 0;
+    double avg_time_round = 0.0;
+    double avg_time_leg_start = 0.0;
     vector<string> leg_end_msgs;
     int recv_err_count = 0;
     while (true) {
@@ -80,16 +84,26 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             cJSON *msgNamePtr = cJSON_GetObjectItem(msgBuf, "msg_name");
-            if (nullptr == msgNamePtr)
+            if (nullptr == msgNamePtr) {
+                recv_err_count++;
                 continue;
+            }
             char *msgName = msgNamePtr->valuestring;
             if (0 == strcmp(msgName, "round")) {
                 string ret = player.message_round(msgBuf);
-                send(hSocket, ret.c_str(), ret.size(), 0);
+                send(hSocket, ret.c_str(), (int) ret.size(), 0);
                 log_info("round_id: %d  SendActMsg: %s", player.round_info->round_id, ret.c_str());
+                auto end_time = chrono::system_clock::now();
+                auto duration_round = chrono::duration_cast<chrono::milliseconds>(end_time - start_time_round).count();
+                avg_time_round += (duration_round - avg_time_round) / (avg_time_round_count + 1);
+                avg_time_round_count++;
             } else if (0 == strcmp(msgName, "leg_start")) {
                 player.message_leg_start(msgBuf);
                 log_info("leg_start");
+                auto end_time = chrono::system_clock::now();
+                auto duration_round = chrono::duration_cast<chrono::milliseconds>(end_time - start_time_round).count();
+                avg_time_leg_start += (duration_round - avg_time_leg_start) / (avg_time_leg_start_count + 1);
+                avg_time_leg_start_count++;
             } else if (0 == strcmp(msgName, "leg_end")) {
                 leg_end_msgs.emplace_back(player.message_leg_end(msgBuf));
                 log_info("leg_end");
@@ -97,6 +111,7 @@ int main(int argc, char *argv[]) {
                 log_info("game_over");
                 break;
             } else {
+                recv_err_count++;
                 log_error("others");
             }
             auto end_time = chrono::system_clock::now();
@@ -104,15 +119,18 @@ int main(int argc, char *argv[]) {
             auto duration_round = chrono::duration_cast<chrono::milliseconds>(end_time - start_time_round);
             time_vec_0.push_back((int) duration_all.count());
             time_vec_1.push_back((int) duration_round.count());
-            time_round += (int)duration_round.count();
-            time_all += (int)duration_all.count();
+            time_round += (int) duration_round.count();
+            time_all += (int) duration_all.count();
             log_info("round time cost: %ld/%ld ms\n\n", duration_round.count(), duration_all.count());
         }
         if (recv_err_count > 20) {
             break;
         }
     }
-    log_info("max single time is %d/%d ms round/all: %d/%dms\n", *max_element(time_vec_1.begin(), time_vec_1.end()), *max_element(time_vec_0.begin(), time_vec_0.end()), time_round, time_all);
+    log_info("max single time is %d/%d ms round/all: %d/%dms\n", *max_element(time_vec_1.begin(), time_vec_1.end()),
+             *max_element(time_vec_0.begin(), time_vec_0.end()), time_round, time_all);
+    log_info("leg_start: %d  %f", avg_time_leg_start_count, avg_time_leg_start);
+    log_info("round: %d  %f", avg_time_round_count, avg_time_round);
     for (string &s : leg_end_msgs) {
         log_info(s.c_str());
     }

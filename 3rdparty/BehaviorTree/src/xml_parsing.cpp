@@ -35,8 +35,11 @@
 
 namespace BT {
     using namespace BT_TinyXML2;
-
+#ifdef _MSC_VER
     struct XMLParser::Pimpl {
+#else
+    struct __attribute__ ((visibility("hidden"))) XMLParser::Pimpl {
+#endif
         TreeNode::Ptr createNodeFromXML(const XMLElement *element,
                                         const Blackboard::Ptr &blackboard,
                                         const TreeNode::Ptr &node_parent);

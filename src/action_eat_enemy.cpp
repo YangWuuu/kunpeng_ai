@@ -1,3 +1,4 @@
+#include <util.h>
 #include "action_eat_enemy.h"
 
 #include "player.h"
@@ -29,6 +30,7 @@ BT::NodeStatus EatEnemy::tick() {
         if (continue_flag) {
             continue;
         }
+        sort(next_loc.begin(), next_loc.end());
         for (auto &eu : info->round_info->enemy_units) {
             double min_score = numeric_limits<double>::max();
             for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
@@ -43,21 +45,7 @@ BT::NodeStatus EatEnemy::tick() {
                     score = 10000;  // must be dead
                 }
                 else {
-                    int remain_loc_num = 0;
-                    for (int tmp_loc = 0; tmp_loc < info->leg_info->path.node_num; tmp_loc++) {
-                        int enemy_dis = info->leg_info->path.get_cost(enemy_loc, tmp_loc);
-                        bool in_reach = false;
-                        for (auto& nl : next_loc) {
-                            int tmp_dis = info->leg_info->path.get_cost(nl, tmp_loc);
-                            if (tmp_dis <= enemy_dis) {
-                                in_reach = true;
-                                break;
-                            }
-                        }
-                        if (!in_reach) {
-                            remain_loc_num++;
-                        }
-                    }
+                    int remain_loc_num = info->leg_info->path.get_intersection_size(next_loc, enemy_loc);
                     double total_dis = 0.0;
                     for (auto& nl : next_loc) {
                         total_dis += info->leg_info->path.get_cost(nl, enemy_loc);
@@ -69,6 +57,7 @@ BT::NodeStatus EatEnemy::tick() {
                 }
             }
             direction_score[idx] = max({min_score, direction_score[idx]});
+//            direction_score[idx] += min_score;
         }
     }
 

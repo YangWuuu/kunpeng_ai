@@ -187,8 +187,8 @@ public:
         constexpr bool default_constructable = std::is_constructible<T, const std::string&>::value;
         constexpr bool param_constructable =
                 std::is_constructible<T, const std::string&, const NodeConfiguration&>::value;
-        constexpr bool has_static_ports_list =
-                has_static_method_providedPorts<T>::value;
+//        constexpr bool has_static_ports_list =
+//                has_static_method_providedPorts<T>::value;
 
         static_assert(default_constructable || param_constructable,
                       "[registerBuilder]: the registered class must have at least one of these two "

@@ -18,9 +18,9 @@ BT::NodeStatus EatPower::tick() {
     for (const auto &power : map_power) {
         int mu_id = 0;
         int closest_loc = 0;
-        double shortest_dis = numeric_limits<double>::max();
+        int shortest_dis = numeric_limits<int>::max();
         for (const auto &mu : info->round_info->my_units) {
-            double dis = info->leg_info->path.get_cost(mu_time[mu.first].second, power.first) + mu_time[mu.first].first;
+            int dis = info->leg_info->path.get_cost(mu_time[mu.first].second, power.first) + mu_time[mu.first].first;
             if (dis < shortest_dis) {
                 shortest_dis = dis;
                 mu_id = mu.first;

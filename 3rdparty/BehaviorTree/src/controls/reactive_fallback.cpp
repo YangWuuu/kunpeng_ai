@@ -28,7 +28,7 @@ NodeStatus ReactiveFallback::tick()
         {
             case NodeStatus::RUNNING:
             {
-                haltChildren(index+1);
+                haltChildren((unsigned int)index+1);
                 return NodeStatus::RUNNING;
             }
 

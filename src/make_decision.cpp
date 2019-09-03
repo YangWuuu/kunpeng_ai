@@ -37,11 +37,13 @@ BT::NodeStatus MakeDecision::tick() {
         if (equal_double(all_good_score[i], max_good_score))
             good_score_id.push_back(i);
     }
-    int id = good_score_id[uniform_int_distribution<int>(0, good_score_id.size() - 1)(e)];
-    for (auto &md : info->task_score->map_direction[id]) {
-        auto &mu = info->round_info->my_units[md.first];
-        if (mu) {
-            mu->direction = md.second;
+    if (!good_score_id.empty()) {
+        int id = good_score_id[uniform_int_distribution<int>(0, (int)good_score_id.size() - 1)(e)];
+        for (auto& md : info->task_score->map_direction[id]) {
+            auto& mu = info->round_info->my_units[md.first];
+            if (mu) {
+                mu->direction = md.second;
+            }
         }
     }
 
