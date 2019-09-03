@@ -626,6 +626,56 @@ private:
     int last_units_id{-1};
 };
 
+class Record {
+public:
+    void start() {
+        vec_round_info.clear();
+    }
+
+    void update_every_round(const shared_ptr<RoundInfo>& round_info) {
+        eat_enemy = true;
+        if (vec_round_info.empty()) {
+            enemy_all_remain_life = 4 + round_info->enemy_remain_life;
+        } else {
+            auto &prev_round_info = *(vec_round_info.end() - 1);
+            int probably_eat_enemy_num = 0;
+            int eat_power_score = 0;
+            for (auto &mu : round_info->my_units) {
+                auto iter = prev_round_info->my_units.find(mu.first);
+                if (iter != prev_round_info->my_units.end()) {
+                    int power_point = 0;
+                    for (auto &p : prev_round_info->powers) {
+                        if (p.loc->index == mu.second->loc->index) {
+                            power_point = p.point;
+                            break;
+                        }
+                    }
+                    eat_power_score += power_point;
+                    if (mu.second->score - iter->second->score > power_point) {
+                        probably_eat_enemy_num++;
+                    }
+                }
+            }
+            if (round_info->my_point - prev_round_info->my_point - eat_power_score >= 10) {
+                log_info("point: %d prev_point: %d eat_power_score: %d probably_eat_enemy_num: %d", round_info->my_point, prev_round_info->my_point, eat_power_score, probably_eat_enemy_num);
+                probably_eat_enemy_num = max(1, probably_eat_enemy_num);
+            }
+            if (probably_eat_enemy_num > 0) {
+                log_info("prev_round_id: %d remain_life:%d enemy_all_remain_life: %d", prev_round_info->round_id, prev_round_info->enemy_remain_life, enemy_all_remain_life);
+                enemy_all_remain_life -= probably_eat_enemy_num;
+                log_info("round_id: %d remain_life:%d enemy_all_remain_life: %d", round_info->round_id, round_info->enemy_remain_life, enemy_all_remain_life);
+            }
+        }
+        vec_round_info.emplace_back(round_info);
+    }
+
+public:
+    vector<shared_ptr<RoundInfo>> vec_round_info;
+    int enemy_all_remain_life{};
+
+    bool eat_enemy;
+};
+
 inline bool equal_double(double a, double b) {
     return abs(a - b) < 1e-6;
 }

@@ -9,6 +9,9 @@ BT::NodeStatus EatEnemy::tick() {
     if (!info->game->is_eat) {
         return BT::NodeStatus::SUCCESS;
     }
+    if (!info->record->eat_enemy) {
+        return BT::NodeStatus::SUCCESS;
+    }
 
     vector<double> direction_score(info->task_score->score_num, 0.0);
     vector<int> now_loc;

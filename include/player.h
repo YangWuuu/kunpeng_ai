@@ -33,7 +33,7 @@ public:
         leg_info = nullptr;
         prev_leg_info = nullptr;
         round_info = nullptr;
-        prev_round_info = nullptr;
+        record = nullptr;
         game = nullptr;
         blackboard = BT::Blackboard::create();
         blackboard->set("info", this);
@@ -70,7 +70,7 @@ public:
     shared_ptr<LegStartInfo> leg_info;
     shared_ptr<LegStartInfo> prev_leg_info;
     shared_ptr<RoundInfo> round_info;
-    shared_ptr<RoundInfo> prev_round_info;
+    shared_ptr<Record> record;
     shared_ptr<Game> game;
     shared_ptr<TaskScore> task_score;
     shared_ptr<TaskScore> enemy_task_score;

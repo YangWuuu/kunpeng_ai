@@ -7,6 +7,8 @@ void Player::message_leg_start(cJSON *msg) {
     leg_info = make_shared<LegStartInfo>();
     parse_message_leg_start(msg);
     leg_info->construct_map();
+    record = make_shared<Record>();
+    record->start();
     game = make_shared<Game>(leg_info);
     task_score = make_shared<TaskScore>();
     enemy_task_score = make_shared<TaskScore>();
@@ -19,9 +21,9 @@ string Player::message_leg_end(cJSON *msg) {
 }
 
 string Player::message_round(cJSON *msg) {
-    prev_round_info = round_info;
     round_info = make_shared<RoundInfo>();
     parse_message_round(msg);
+    record->update_every_round(round_info);
     //show_map();
     game->update_round_info(round_info);
     task_score->init_every_round(round_info->my_units);
