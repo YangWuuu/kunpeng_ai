@@ -638,32 +638,23 @@ public:
             enemy_all_remain_life = 4 + round_info->enemy_remain_life;
         } else {
             auto &prev_round_info = *(vec_round_info.end() - 1);
-            int probably_eat_enemy_num = 0;
-            int eat_power_score = 0;
-            for (auto &mu : round_info->my_units) {
-                auto iter = prev_round_info->my_units.find(mu.first);
-                if (iter != prev_round_info->my_units.end()) {
-                    int power_point = 0;
-                    for (auto &p : prev_round_info->powers) {
-                        if (p.loc->index == mu.second->loc->index) {
-                            power_point = p.point;
-                            break;
-                        }
-                    }
-                    eat_power_score += power_point;
-                    if (mu.second->score - iter->second->score > power_point) {
-                        probably_eat_enemy_num++;
-                    }
+            if (prev_round_info->my_units.size() == round_info->my_units.size()) {
+                int prev_round_unit_score = 0;
+                int round_unit_score = 0;
+                for (auto &mu : prev_round_info->my_units) {
+                    prev_round_unit_score += mu.second->score;
                 }
-            }
-            if (round_info->my_point - prev_round_info->my_point - eat_power_score >= 10) {
-                log_info("point: %d prev_point: %d eat_power_score: %d probably_eat_enemy_num: %d", round_info->my_point, prev_round_info->my_point, eat_power_score, probably_eat_enemy_num);
-                probably_eat_enemy_num = max(1, probably_eat_enemy_num);
-            }
-            if (probably_eat_enemy_num > 0) {
-                log_info("prev_round_id: %d remain_life:%d enemy_all_remain_life: %d", prev_round_info->round_id, prev_round_info->enemy_remain_life, enemy_all_remain_life);
-                enemy_all_remain_life -= probably_eat_enemy_num;
-                log_info("round_id: %d remain_life:%d enemy_all_remain_life: %d", round_info->round_id, round_info->enemy_remain_life, enemy_all_remain_life);
+                for (auto &mu : round_info->my_units) {
+                    round_unit_score += mu.second->score;
+                }
+                int sub_score = (round_info->my_point - prev_round_info->my_point) - (round_unit_score - prev_round_unit_score);
+                if (sub_score > 0) {
+                    enemy_all_remain_life -= sub_score / 10;
+                    log_info("round_id: %d sub_score: %d enemy_all_remain_life: %d", round_info->round_id, sub_score, enemy_all_remain_life);
+                }
+                if (sub_score % 10 != 0) {
+                    log_error("sub_score: %d", sub_score);
+                }
             }
         }
         vec_round_info.emplace_back(round_info);

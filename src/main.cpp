@@ -71,13 +71,40 @@ int main(int argc, char *argv[]) {
     double avg_time_leg_start = 0.0;
     vector<string> leg_end_msgs;
     int recv_err_count = 0;
+    auto char_to_int = [](const char *buffer, int len) -> int {
+        int ret = 0;
+        for (int i = 0; i < len; i++) {
+            int d = *(buffer + i) - '0';
+            if (d >= 0 && d <= 9) {
+                ret = ret * 10 + d;
+            } else {
+                return 0;
+            }
+        }
+        return ret;
+    };
+    string full_msg;
+    int full_msg_len = 0;
     while (true) {
         char buffer[99999] = {'\0'};
         auto start_time_all = chrono::system_clock::now();
         if (recv(hSocket, buffer, sizeof(buffer) - 1, 0)) {
             auto start_time_round = chrono::system_clock::now();
-            cJSON *msgBuf = cJSON_Parse(buffer + 5);
-            log_info("%s", buffer);
+            int len = char_to_int(buffer, 5);
+            if (len > 0) {
+                full_msg = string(buffer);
+                full_msg_len = len;
+            } else {
+                full_msg += string(buffer);
+            }
+            log_info("full_msg_len: %d full_msg.size: %d %s", full_msg_len, full_msg.size(),  buffer);
+            if ((int)full_msg.size() < full_msg_len + 5) {
+                log_error("bag is splited");
+                continue;
+            }
+            cJSON *msgBuf = cJSON_Parse(full_msg.c_str() + 5);
+            full_msg_len = 0;
+            full_msg.clear();
 
             if (nullptr == msgBuf) {
                 recv_err_count++;
