@@ -16,6 +16,8 @@ static const char* xml_text = R"(
                 <Action ID="ExploreMap"/>
                 <Action ID="EatPower"/>
                 <Action ID="RunAway"/>
+                <Action ID="SearchEnemy"/>
+                <Action ID="AvoidEnemy"/>
             </ReactiveSequence>
             <Action ID="MakeDecision"/>
         </ReactiveSequence>
@@ -29,6 +31,8 @@ static const char* xml_text = R"(
         <Action ID="MakeDecision"/>
         <Action ID="PredictEnemyNowLoc"/>
         <Action ID="RunAway"/>
+        <Action ID="SearchEnemy"/>
+        <Action ID="AvoidEnemy"/>
     </TreeNodesModel>
     <!-- ////////// -->
 </root>

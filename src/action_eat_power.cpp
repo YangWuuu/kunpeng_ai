@@ -60,6 +60,6 @@ BT::NodeStatus EatPower::tick() {
         }
     }
 
-    info->task_score->set_task_good_score(TASK_NAME::TaskEatPower, direction_score);
+    info->task_score->set_task_score(TASK_NAME::TaskEatPower, direction_score);
     return BT::NodeStatus::SUCCESS;
 }

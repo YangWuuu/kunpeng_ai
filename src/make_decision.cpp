@@ -10,7 +10,7 @@ BT::NodeStatus MakeDecision::tick() {
     vector<double> all_good_score = vector<double>(score_num, 0.0);
 
     string out = "\n";
-    for (auto &gc : info->task_score->good_score) {
+    for (auto &gc : info->task_score->score) {
         out += string("TASK_NAME: ") + TASK_NAME_STRING[gc.first] + "\n";
         vector<int> idx = sort_indexes(gc.second);
         reverse(idx.begin(), idx.end());
@@ -26,7 +26,7 @@ BT::NodeStatus MakeDecision::tick() {
     }
     log_info("%s", out.c_str());
     
-    for (auto &gc : info->task_score->good_score) {
+    for (auto &gc : info->task_score->score) {
         for (int i = 0; i < score_num; i++) {
             all_good_score[i] += gc.second[i];
         }

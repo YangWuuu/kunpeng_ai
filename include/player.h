@@ -20,6 +20,8 @@
 #include "action_eat_power.h"
 #include "action_explore_map.h"
 #include "action_run_away.h"
+#include "action_search_enemy.h"
+#include "action_avoid_enemy.h"
 #include "make_decision.h"
 
 using namespace std;
@@ -33,7 +35,6 @@ public:
         leg_info = nullptr;
         prev_leg_info = nullptr;
         round_info = nullptr;
-        record = nullptr;
         game = nullptr;
         blackboard = BT::Blackboard::create();
         blackboard->set("info", this);
@@ -46,6 +47,8 @@ public:
         factory.registerNodeType<MakeDecision>("MakeDecision");
         factory.registerNodeType<PredictEnemyNowLoc>("PredictEnemyNowLoc");
         factory.registerNodeType<RunAway>("RunAway");
+        factory.registerNodeType<SearchEnemy>("SearchEnemy");
+        factory.registerNodeType<AvoidEnemy>("AvoidEnemy");
 
         tree = factory.createTreeFromText(xml_text, blackboard);
         logger_cout.setTree(tree);
@@ -70,7 +73,6 @@ public:
     shared_ptr<LegStartInfo> leg_info;
     shared_ptr<LegStartInfo> prev_leg_info;
     shared_ptr<RoundInfo> round_info;
-    shared_ptr<Record> record;
     shared_ptr<Game> game;
     shared_ptr<TaskScore> task_score;
     shared_ptr<TaskScore> enemy_task_score;

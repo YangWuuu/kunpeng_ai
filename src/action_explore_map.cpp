@@ -79,6 +79,6 @@ BT::NodeStatus ExploreMap::tick() {
         }
     }
 
-    info->task_score->set_task_good_score(TASK_NAME::TaskExploreMap, direction_score);
+    info->task_score->set_task_score(TASK_NAME::TaskExploreMap, direction_score);
     return BT::NodeStatus::SUCCESS;
 }

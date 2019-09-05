@@ -39,13 +39,17 @@ enum TASK_NAME {
     TaskExploreMap,
     TaskEatPower,
     TaskRunAway,
+    TaskSearchEnemy,
+    TaskAvoidEnemy,
 };
 
 const static vector<string> TASK_NAME_STRING = {
         "TaskEatEnemy",
         "TaskExploreMap",
         "TaskEatPower",
-        "TaskRunAway"
+        "TaskRunAway",
+        "TaskSearchEnemy",
+        "TaskAvoidEnemy"
 };
 
 enum DIRECTION {
@@ -533,6 +537,7 @@ public:
 
     void cal_vision_grids() {
         vision_grids = vector<vector<int>>(path.node_num, vector<int>());
+        vision_grids_1 = vector<vector<int>>(path.node_num, vector<int>());
         for (int n = 0; n < path.node_num; n++) {
             auto p = path.to_point(n);
             int x = p->x;
@@ -540,6 +545,11 @@ public:
             for (int i = max(x - vision, 0); i <= min(x + vision, width - 1); i++) {
                 for (int j = max(y - vision, 0); j <= min(y + vision, height - 1); j++) {
                     vision_grids[n].emplace_back(path.to_index(i, j));
+                }
+            }
+            for (int i = max(x - 1, 0); i <= min(x + 1, width - 1); i++) {
+                for (int j = max(y - 1, 0); j <= min(y + 1, height - 1); j++) {
+                    vision_grids_1[n].emplace_back(path.to_index(i, j));
                 }
             }
         }
@@ -554,6 +564,7 @@ public:
     Team my_team;
     Team enemy_team;
     vector<vector<int>> vision_grids;
+    vector<vector<int>> vision_grids_1;
 };
 
 inline int my_pow(int base, int exp) {
@@ -568,8 +579,7 @@ inline int my_pow(int base, int exp) {
 class TaskScore {
 public:
     void init_every_round(const map<int, Unit::Ptr> &my_units) {
-        good_score.clear();
-        bad_score.clear();
+        score.clear();
         int now_units_id = 0;
         for (auto &mu : my_units) {
             now_units_id += my_pow(8, mu.first);
@@ -592,12 +602,8 @@ public:
         }
     }
 
-    void set_task_good_score(TASK_NAME task_name, vector<double> &direction_score) {
-        good_score[task_name] = move(direction_score);
-    }
-
-    void set_task_bad_score(TASK_NAME task_name, vector<double> &direction_score) {
-        bad_score[task_name] = move(direction_score);
+    void set_task_score(TASK_NAME task_name, vector<double> &direction_score) {
+        score[task_name] = move(direction_score);
     }
 
     void get_map_direction() {
@@ -619,52 +625,10 @@ public:
 
     vector<map<int, DIRECTION>> map_direction;
 
-    map<TASK_NAME, vector<double>> good_score;
-    map<TASK_NAME, vector<double>> bad_score;
+    map<TASK_NAME, vector<double>> score;
 
 private:
     int last_units_id{-1};
-};
-
-class Record {
-public:
-    void start() {
-        vec_round_info.clear();
-    }
-
-    void update_every_round(const shared_ptr<RoundInfo>& round_info) {
-        eat_enemy = true;
-        if (vec_round_info.empty()) {
-            enemy_all_remain_life = 4 + round_info->enemy_remain_life;
-        } else {
-            auto &prev_round_info = *(vec_round_info.end() - 1);
-            if (prev_round_info->my_units.size() == round_info->my_units.size()) {
-                int prev_round_unit_score = 0;
-                int round_unit_score = 0;
-                for (auto &mu : prev_round_info->my_units) {
-                    prev_round_unit_score += mu.second->score;
-                }
-                for (auto &mu : round_info->my_units) {
-                    round_unit_score += mu.second->score;
-                }
-                int sub_score = (round_info->my_point - prev_round_info->my_point) - (round_unit_score - prev_round_unit_score);
-                if (sub_score > 0) {
-                    enemy_all_remain_life -= sub_score / 10;
-                    log_info("round_id: %d sub_score: %d enemy_all_remain_life: %d", round_info->round_id, sub_score, enemy_all_remain_life);
-                }
-                if (sub_score % 10 != 0) {
-                    log_error("sub_score: %d", sub_score);
-                }
-            }
-        }
-        vec_round_info.emplace_back(round_info);
-    }
-
-public:
-    vector<shared_ptr<RoundInfo>> vec_round_info;
-    int enemy_all_remain_life{};
-
-    bool eat_enemy;
 };
 
 inline bool equal_double(double a, double b) {

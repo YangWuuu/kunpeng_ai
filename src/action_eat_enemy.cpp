@@ -6,10 +6,7 @@
 BT::NodeStatus EatEnemy::tick() {
     auto info = config().blackboard->get<Player *>("info");
 
-    if (!info->game->is_eat) {
-        return BT::NodeStatus::SUCCESS;
-    }
-    if (!info->record->eat_enemy) {
+    if (!info->game->eat_enemy) {
         return BT::NodeStatus::SUCCESS;
     }
 
@@ -64,6 +61,6 @@ BT::NodeStatus EatEnemy::tick() {
         }
     }
 
-    info->task_score->set_task_good_score(TASK_NAME::TaskEatEnemy, direction_score);
+    info->task_score->set_task_score(TASK_NAME::TaskEatEnemy, direction_score);
     return BT::NodeStatus::SUCCESS;
 }
