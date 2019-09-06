@@ -17,7 +17,14 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    string log_path = "/var/log/battle_yangwuuu.log";
+    auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    struct tm *ptm = localtime(&tt);
+    char date[60] = {0};
+    sprintf(date, "%d_%02d_%02d_%02d_%02d_%02d",
+            (int) ptm->tm_year + 1900, (int) ptm->tm_mon + 1, (int) ptm->tm_mday,
+            (int) ptm->tm_hour, (int) ptm->tm_min, (int) ptm->tm_sec);
+
+    string log_path = "/var/log/battle_yangwuuu_" + string(date) + ".log";
 #ifdef OS_WINDOWS
     // windows init
     WSADATA wsa;
@@ -52,10 +59,10 @@ int main(int argc, char *argv[]) {
     log_info("connect server success\n");
 
     int myTeamId = std::stoi(argv[1]);
-    Player player(myTeamId, "ai_yang", debug);
+    Player player(myTeamId);
     /* Ïòserver×¢²á */
     char regMsg[200] = {'\0'};
-    sprintf(regMsg, R"({"msg_name":"registration","msg_data":{"team_id":%d,"team_name":"ai_yang"}})", myTeamId);
+    sprintf(regMsg, R"({"msg_name":"registration","msg_data":{"team_id":%d,"team_name":"enemy"}})", myTeamId);
     char regMsgWithLength[200] = {'\0'};
     sprintf(regMsgWithLength, "%05d%s", (int) strlen(regMsg), regMsg);
     send(hSocket, regMsgWithLength, (int) strlen(regMsgWithLength), 0);
@@ -86,6 +93,10 @@ int main(int argc, char *argv[]) {
     string full_msg;
     int full_msg_len = 0;
     while (true) {
+        if (recv_err_count > 20) {
+            log_error("recv_err_count is too large");
+            break;
+        }
         char buffer[99999] = {'\0'};
         auto start_time_all = chrono::system_clock::now();
         if (recv(hSocket, buffer, sizeof(buffer) - 1, 0)) {
@@ -97,9 +108,10 @@ int main(int argc, char *argv[]) {
             } else {
                 full_msg += string(buffer);
             }
-            log_info("full_msg_len: %d full_msg.size: %d %s", full_msg_len, full_msg.size(),  buffer);
-            if ((int)full_msg.size() < full_msg_len + 5) {
+            log_info("full_msg_len: %d full_msg.size: %d %s", full_msg_len, full_msg.size(), buffer);
+            if ((int) full_msg.size() < full_msg_len + 5) {
                 log_error("bag is splited");
+                recv_err_count++;
                 continue;
             }
             cJSON *msgBuf = cJSON_Parse(full_msg.c_str() + 5);
@@ -115,6 +127,7 @@ int main(int argc, char *argv[]) {
                 recv_err_count++;
                 continue;
             }
+            recv_err_count = 0;
             char *msgName = msgNamePtr->valuestring;
             if (0 == strcmp(msgName, "round")) {
                 string ret = player.message_round(msgBuf);
@@ -150,14 +163,11 @@ int main(int argc, char *argv[]) {
             time_all += (int) duration_all.count();
             log_info("round time cost: %ld/%ld ms\n\n", duration_round.count(), duration_all.count());
         }
-        if (recv_err_count > 20) {
-            break;
-        }
     }
     log_info("max single time is %d/%d ms round/all: %d/%dms\n", *max_element(time_vec_1.begin(), time_vec_1.end()),
              *max_element(time_vec_0.begin(), time_vec_0.end()), time_round, time_all);
-    log_info("leg_start: %d  %f", avg_time_leg_start_count, avg_time_leg_start);
-    log_info("round: %d  %f", avg_time_round_count, avg_time_round);
+    log_info("leg_start: %dcount  %fms", avg_time_leg_start_count, avg_time_leg_start);
+    log_info("round: %dcount  %fms", avg_time_round_count, avg_time_round);
     for (string &s : leg_end_msgs) {
         log_info(s.c_str());
     }

@@ -15,7 +15,7 @@ void Player::message_leg_start(cJSON *msg) {
 string Player::message_leg_end(cJSON *msg) {
     cJSON *msg_data = cJSON_GetObjectItem(msg, "msg_data");
     cJSON *msg_teams = cJSON_GetObjectItem(msg_data, "teams");
-    return string("round_id:") + to_string(round_info->round_id) + cJSON_PrintUnformatted(msg_teams);
+    return string("round_id: ") + to_string(round_info->round_id) + cJSON_PrintUnformatted(msg_teams) + " my_life: " + to_string(game->my_all_remain_life) + " enemy_life: " + to_string(game->enemy_all_remain_life);
 }
 
 string Player::message_round(cJSON *msg) {

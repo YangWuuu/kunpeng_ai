@@ -62,6 +62,11 @@ public:
     bool run_away{};
     bool search_enemy{};
     bool avoid_enemy{};
+    bool out_vision{};
+
+private:
+    set<int> see_alive_enemy;
+    set<int> dead_enemy;
 };
 
 #endif //AI_YANG_GAME_H

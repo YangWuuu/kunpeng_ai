@@ -22,16 +22,15 @@
 #include "action_run_away.h"
 #include "action_search_enemy.h"
 #include "action_avoid_enemy.h"
+#include "action_out_vision.h"
 #include "make_decision.h"
 
 using namespace std;
 
 class Player {
 public:
-    explicit Player(int _team_id, string _team_name, bool _debug = false)
-            : team_id(_team_id),
-              team_name(move(_team_name)),
-              debug(_debug) {
+    explicit Player(int _team_id)
+            : team_id(_team_id) {
         leg_info = nullptr;
         prev_leg_info = nullptr;
         round_info = nullptr;
@@ -49,12 +48,10 @@ public:
         factory.registerNodeType<RunAway>("RunAway");
         factory.registerNodeType<SearchEnemy>("SearchEnemy");
         factory.registerNodeType<AvoidEnemy>("AvoidEnemy");
+        factory.registerNodeType<OutVision>("OutVision");
 
         tree = factory.createTreeFromText(xml_text, blackboard);
         logger_cout.setTree(tree);
-        //if (debug) {
-        //    logger_file.setTree(tree, "bt_trace.fbl");
-        //}
     }
 
     ~Player() = default;
@@ -81,11 +78,8 @@ public:
     BT::Blackboard::Ptr blackboard;
 
     int team_id;
-    string team_name;
 
-    bool debug;
     BT::StdCoutLogger logger_cout;
-    BT::FileLogger logger_file;
 
 public:
 

@@ -41,6 +41,7 @@ enum TASK_NAME {
     TaskRunAway,
     TaskSearchEnemy,
     TaskAvoidEnemy,
+    TaskOutVision,
 };
 
 const static vector<string> TASK_NAME_STRING = {
@@ -49,7 +50,8 @@ const static vector<string> TASK_NAME_STRING = {
         "TaskEatPower",
         "TaskRunAway",
         "TaskSearchEnemy",
-        "TaskAvoidEnemy"
+        "TaskAvoidEnemy",
+        "TaskOutVision"
 };
 
 enum DIRECTION {
@@ -160,6 +162,10 @@ public:
 
     void setMap(map<int, map<int, Point::Ptr>> *_maps) {
         maps = _maps;
+        vec_point.clear();
+        for (int index = 0; index < node_num; index++) {
+            vec_point.emplace_back((*maps)[index % width][index / width]);
+        }
         path = vector<vector<int>>(node_num, vector<int>(node_num, 0));
         for (int i = 0; i < node_num; i++) {
             for (int j = 0; j < node_num; j++) {
@@ -199,7 +205,7 @@ public:
 
 public:
     Point::Ptr to_point(int index) {
-        return (*maps)[index % width][index / width];
+        return vec_point[index];
     }
 
     int to_index(int x, int y) {
@@ -408,6 +414,8 @@ private:
     vector<vector<int>> G;
     vector<vector<int>> dist;
     vector<vector<int>> path;
+
+    vector<Point::Ptr> vec_point;
 
     map<int, vector<int>> map_intersection_index1;
     map<int, map<int, vector<int>>> map_intersection_index2;

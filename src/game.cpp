@@ -12,6 +12,7 @@ void Game::update_round_info(const shared_ptr<RoundInfo> &round_info) {
     run_away = false;
     search_enemy = false;
     avoid_enemy = false;
+    out_vision = false;
 }
 
 void Game::update_score() {
@@ -66,12 +67,33 @@ void Game::update_remain_life() {
             int sub_score = (round_info->my_point - prev_round_info->my_point) - (round_unit_score - prev_round_unit_score);
             if (sub_score > 0) {
                 enemy_all_remain_life -= sub_score / 10;
+                see_alive_enemy.clear();
                 log_info("round_id: %d sub_score: %d enemy_all_remain_life: %d", round_info->round_id, sub_score, enemy_all_remain_life);
             }
             if (sub_score % 10 != 0) {
                 log_error("sub_score: %d", sub_score);
             }
         }
+    }
+    for (auto &eu : round_info->enemy_units) {
+        see_alive_enemy.insert(eu.first);
+    }
+    if ((int)see_alive_enemy.size() == enemy_all_remain_life) {
+        for (int enemy_id : leg_info->enemy_team.units) {
+            auto iter = see_alive_enemy.find(enemy_id);
+            if (iter == see_alive_enemy.end()) {
+                dead_enemy.insert(enemy_id);
+            }
+        }
+    }
+    if (!dead_enemy.empty()) {
+        string log_str = "round_id: " + to_string(round_info->round_id) + " ";
+        log_str += "enemy_all_remain_life: " + to_string(enemy_all_remain_life) + " ";
+        log_str += "dead_enemy: ";
+        for (int dead_enemy_id : dead_enemy) {
+            log_str += to_string(dead_enemy_id) + " ";
+        }
+        log_info(log_str.c_str());
     }
 }
 
@@ -81,34 +103,37 @@ void Game::update_danger() {
         int id = eu.first;
         int pos = eu.second;
         vector<double> &danger = vec_danger[pos];
+        if (dead_enemy.find(id) != dead_enemy.end()) {
+            danger = vector<double>(leg_info->path.node_num, 0.0);
+            continue;
+        }
         auto iter = round_info->enemy_units.find(id);
         if (iter != round_info->enemy_units.end()) {
             danger = vector<double>(leg_info->path.node_num, 0.0);
             danger[iter->second->loc->index] = leg_info->path.node_num;
-        } else {
-            vector<double> danger_tmp(leg_info->path.node_num, 0.0);
-            vector<int> next_index;
-            for (int i = 0; i < leg_info->path.node_num; i++) {
-                Point::Ptr p = leg_info->path.to_point(i);
-                if (p->tunnel != DIRECTION::NONE || p->wall) {
-                    continue;
-                }
-                if (equal_double(danger[i], 1e-6)) {
-                    continue;
-                }
-                next_index.clear();
-                for (auto &np : p->next) {
-                    if (np.second->tunnel != DIRECTION::NONE || np.second->wall) {
-                        continue;
-                    }
-                    next_index.emplace_back(np.second->index);
-                }
-                for (int ni : next_index) {
-                    danger_tmp[ni] += danger[i] / next_index.size();
-                }
-            }
-            danger = danger_tmp;
         }
+        vector<double> danger_tmp(leg_info->path.node_num, 0.0);
+        vector<int> next_index;
+        for (int i = 0; i < leg_info->path.node_num; i++) {
+            Point::Ptr p = leg_info->path.to_point(i);
+            if (p->tunnel != DIRECTION::NONE || p->wall) {
+                continue;
+            }
+            if (equal_double(danger[i], 1e-6)) {
+                continue;
+            }
+            next_index.clear();
+            for (auto &np : p->next) {
+                if (np.second->tunnel != DIRECTION::NONE || np.second->wall) {
+                    continue;
+                }
+                next_index.emplace_back(np.second->index);
+            }
+            for (int ni : next_index) {
+                danger_tmp[ni] += danger[i] / next_index.size();
+            }
+        }
+        danger = danger_tmp;
     }
     vector<bool> vision_grids_index(leg_info->path.node_num, false);
     for (auto &mu : round_info->my_units) {
@@ -124,6 +149,9 @@ void Game::update_danger() {
         int id = eu.first;
         int pos = eu.second;
         vector<double> &danger = vec_danger[pos];
+        if (dead_enemy.find(id) != dead_enemy.end()) {
+            continue;
+        }
         auto iter = round_info->enemy_units.find(id);
         if (iter == round_info->enemy_units.end()) {
             double inside = 0.0;

@@ -142,6 +142,7 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
             vfprintf(L.fp, fmt, args);
             va_end(args);
             fprintf(L.fp, "\n");
+            fflush(L.fp);
         }
 
         /* Release lock */
@@ -197,6 +198,7 @@ void log_log_without_file_name(int level, const char* fmt, ...)
             vfprintf(L.fp, fmt, args);
             va_end(args);
             fprintf(L.fp, "\n");
+            fflush(L.fp);
         }
 
         /* Release lock */

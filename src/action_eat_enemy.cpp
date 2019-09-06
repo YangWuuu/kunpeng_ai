@@ -11,6 +11,7 @@ BT::NodeStatus EatEnemy::tick() {
     }
 
     vector<double> direction_score(info->task_score->score_num, 0.0);
+    direction_score[info->task_score->score_num - 1] = -100.0;
     vector<int> now_loc;
     for (auto &mu : info->round_info->my_units) {
         now_loc.emplace_back(mu.second->loc->index);

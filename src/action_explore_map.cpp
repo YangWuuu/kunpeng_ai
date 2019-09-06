@@ -74,7 +74,7 @@ BT::NodeStatus ExploreMap::tick() {
         map<int, DIRECTION> &map_direction = info->task_score->map_direction[idx];
         for (const auto &sds : single_direction_score) {
             if (map_direction[sds.mu_id] == sds.dir) {
-                direction_score[idx] += sds.score;
+                direction_score[idx] += sds.score / (info->leg_info->vision * 5);
             }
         }
     }
