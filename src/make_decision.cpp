@@ -61,7 +61,7 @@ BT::NodeStatus MakeDecision::tick() {
         }
     }
     if (id != -1) {
-        out += "\nDECISION:\n";
+        out += "\nround_id: " + to_string(info->game->round_id) + " DECISION:\n";
         for (auto &gc : info->task_score->score) {
             out += TASK_NAME_STRING[gc.first] + "\t";
             for (auto &md : info->task_score->map_direction[id]) {

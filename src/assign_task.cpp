@@ -9,12 +9,13 @@ BT::NodeStatus AssignTask::tick() {
         if (info->game->enemy_all_remain_life > 1) {
             info->game->eat_enemy = true;
         } else {
-//            info->game->avoid_enemy = true;
+            info->game->run_away = true;
+            info->game->avoid_enemy = true;
         }
     }
     if (info->game->round_id >= 150 && !info->game->is_eat) {
         info->game->run_away = true;
-//        info->game->avoid_enemy = true;
+        info->game->avoid_enemy = true;
     }
     if (info->game->round_id < 150 && !info->game->is_eat) {
         if (info->game->my_all_remain_life > 1) {

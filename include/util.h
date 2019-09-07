@@ -42,6 +42,7 @@ enum TASK_NAME {
     TaskSearchEnemy,
     TaskAvoidEnemy,
     TaskOutVision,
+    TaskRemoveInvalid,
 };
 
 const static vector<string> TASK_NAME_STRING = {
@@ -51,7 +52,8 @@ const static vector<string> TASK_NAME_STRING = {
         "TaskRunAway",
         "TaskSearchEnemy",
         "TaskAvoidEnemy",
-        "TaskOutVision"
+        "TaskOutVision",
+        "TaskRemoveInvalid",
 };
 
 enum DIRECTION {
@@ -555,10 +557,13 @@ public:
                     vision_grids[n].emplace_back(path.to_index(i, j));
                 }
             }
-            for (int i = max(x - 1, 0); i <= min(x + 1, width - 1); i++) {
-                for (int j = max(y - 1, 0); j <= min(y + 1, height - 1); j++) {
-                    vision_grids_1[n].emplace_back(path.to_index(i, j));
-                }
+//            for (int i = max(x - 1, 0); i <= min(x + 1, width - 1); i++) {
+//                for (int j = max(y - 1, 0); j <= min(y + 1, height - 1); j++) {
+//                    vision_grids_1[n].emplace_back(path.to_index(i, j));
+//                }
+//            }
+            for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
+                vision_grids_1[n].emplace_back(path.to_point(n)->next[d]->index);
             }
         }
     }

@@ -23,6 +23,7 @@
 #include "action_search_enemy.h"
 #include "action_avoid_enemy.h"
 #include "action_out_vision.h"
+#include "action_remove_invalid.h"
 #include "make_decision.h"
 
 using namespace std;
@@ -49,6 +50,7 @@ public:
         factory.registerNodeType<SearchEnemy>("SearchEnemy");
         factory.registerNodeType<AvoidEnemy>("AvoidEnemy");
         factory.registerNodeType<OutVision>("OutVision");
+        factory.registerNodeType<RemoveInvalid>("RemoveInvalid");
 
         tree = factory.createTreeFromText(xml_text, blackboard);
         logger_cout.setTree(tree);

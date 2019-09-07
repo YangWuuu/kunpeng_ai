@@ -99,42 +99,7 @@ void Game::update_remain_life() {
 
 void Game::update_danger() {
     auto &round_info = *(vec_round_info.end() - 1);
-    for (auto &eu : enemy_units_map) {
-        int id = eu.first;
-        int pos = eu.second;
-        vector<double> &danger = vec_danger[pos];
-        if (dead_enemy.find(id) != dead_enemy.end()) {
-            danger = vector<double>(leg_info->path.node_num, 0.0);
-            continue;
-        }
-        auto iter = round_info->enemy_units.find(id);
-        if (iter != round_info->enemy_units.end()) {
-            danger = vector<double>(leg_info->path.node_num, 0.0);
-            danger[iter->second->loc->index] = leg_info->path.node_num;
-        }
-        vector<double> danger_tmp(leg_info->path.node_num, 0.0);
-        vector<int> next_index;
-        for (int i = 0; i < leg_info->path.node_num; i++) {
-            Point::Ptr p = leg_info->path.to_point(i);
-            if (p->tunnel != DIRECTION::NONE || p->wall) {
-                continue;
-            }
-            if (equal_double(danger[i], 1e-6)) {
-                continue;
-            }
-            next_index.clear();
-            for (auto &np : p->next) {
-                if (np.second->tunnel != DIRECTION::NONE || np.second->wall) {
-                    continue;
-                }
-                next_index.emplace_back(np.second->index);
-            }
-            for (int ni : next_index) {
-                danger_tmp[ni] += danger[i] / next_index.size();
-            }
-        }
-        danger = danger_tmp;
-    }
+
     vector<bool> vision_grids_index(leg_info->path.node_num, false);
     for (auto &mu : round_info->my_units) {
         for (int index : leg_info->vision_grids[mu.second->loc->index]) {
@@ -182,5 +147,65 @@ void Game::update_danger() {
             }
             log_error("id: %d inside: %f outside: %f", eu.first, inside, outside);
         }
+    }
+
+    for (auto &eu : enemy_units_map) {
+        int id = eu.first;
+        int pos = eu.second;
+        vector<double> &danger = vec_danger[pos];
+        if (dead_enemy.find(id) != dead_enemy.end()) {
+            danger = vector<double>(leg_info->path.node_num, 0.0);
+            continue;
+        }
+        auto iter = round_info->enemy_units.find(id);
+        if (iter != round_info->enemy_units.end()) {
+            danger = vector<double>(leg_info->path.node_num, 0.0);
+            danger[iter->second->loc->index] = leg_info->path.node_num;
+        }
+        vector<double> danger_tmp(leg_info->path.node_num, 0.0);
+        vector<int> next_index;
+        for (int i = 0; i < leg_info->path.node_num; i++) {
+            Point::Ptr p = leg_info->path.to_point(i);
+            if (p->tunnel != DIRECTION::NONE || p->wall) {
+                continue;
+            }
+            if (equal_double(danger[i], 1e-6)) {
+                continue;
+            }
+            next_index.clear();
+            for (auto &np : p->next) {
+                if (np.second->tunnel != DIRECTION::NONE || np.second->wall) {
+                    continue;
+                }
+                next_index.emplace_back(np.second->index);
+            }
+            for (int ni : next_index) {
+                danger_tmp[ni] += danger[i] / next_index.size();
+            }
+        }
+        danger = danger_tmp;
+
+        //twice
+        vector<double> danger_tmp2(leg_info->path.node_num, 0.0);
+        for (int i = 0; i < leg_info->path.node_num; i++) {
+            Point::Ptr p = leg_info->path.to_point(i);
+            if (p->tunnel != DIRECTION::NONE || p->wall) {
+                continue;
+            }
+            if (equal_double(danger[i], 1e-6)) {
+                continue;
+            }
+            next_index.clear();
+            for (auto &np : p->next) {
+                if (np.second->tunnel != DIRECTION::NONE || np.second->wall) {
+                    continue;
+                }
+                next_index.emplace_back(np.second->index);
+            }
+            for (int ni : next_index) {
+                danger_tmp2[ni] += danger[i] / next_index.size();
+            }
+        }
+        danger = danger_tmp2;
     }
 }
