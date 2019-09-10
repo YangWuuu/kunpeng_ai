@@ -20,7 +20,7 @@ BT::NodeStatus EatEnemy::tick() {
         vector<int> next_loc;
         bool continue_flag = false;
         for (auto &mu : info->round_info->my_units) {
-            auto &next_point = mu.second->loc->next[map_direction[mu.first]];
+            auto next_point = mu.second->loc->next_point(map_direction[mu.first], info->game->map_first_cloud[mu.first]);
             if (map_direction[mu.first] != DIRECTION::NONE && next_point == mu.second->loc) {
                 continue_flag = true;
                 break;
@@ -34,7 +34,7 @@ BT::NodeStatus EatEnemy::tick() {
         for (auto &eu : info->round_info->enemy_units) {
             double min_score = numeric_limits<double>::max();
             for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
-                auto &next_point = eu.second->loc->next[d];
+                auto next_point = eu.second->loc->next_point(d, info->game->map_first_cloud[eu.first]);
                 if (d != DIRECTION::NONE && next_point == eu.second->loc) {
                     continue;
                 }

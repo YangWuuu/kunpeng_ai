@@ -24,7 +24,8 @@ int main(int argc, char *argv[]) {
             (int) ptm->tm_year + 1900, (int) ptm->tm_mon + 1, (int) ptm->tm_mday,
             (int) ptm->tm_hour, (int) ptm->tm_min, (int) ptm->tm_sec);
 
-    string log_path = "/var/log/battle_yangwuuu_" + string(date) + ".log";
+    string log_name = "battle_yangwuuu_" + string(date) + ".log";
+    string log_path = "/var/log/" + log_name;
 #ifdef OS_WINDOWS
     // windows init
     WSADATA wsa;
@@ -33,7 +34,8 @@ int main(int argc, char *argv[]) {
         log_error("WSAStartup failed\n");
         return false;
     }
-    log_path = "./battle_yangwuuu.log";
+    system("mkdir -p ./log");
+    log_path = "./log/" + log_name;
 #endif
 
     bool debug = argc > 4 && string(argv[4]) == "debug";
@@ -175,5 +177,8 @@ int main(int argc, char *argv[]) {
     if (fp) {
         fclose(fp);
     }
+    string cmd = "sshpass -p yc45j scp -o StrictHostKeyChecking=no " + log_path + " root@119.3.167.104:/root/log/" + log_name;
+    int ret_id = system(cmd.c_str());
+    log_error("cmd: %s ret: %d", cmd.c_str(), ret_id);
     return 0;
 }

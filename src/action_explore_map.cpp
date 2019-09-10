@@ -5,6 +5,18 @@
 BT::NodeStatus ExploreMap::tick() {
     auto info = config().blackboard->get<Player *>("info");
 
+    function<double(int start, int end, bool is_first_cloud)> get_cost;
+
+    if (info->game->avoid_enemy) {
+        get_cost = [info](int start, int end, bool is_first_cloud) -> double {
+            return (double)info->game->get_cost(start, end);
+        };
+    } else {
+        get_cost = [info](int start, int end, bool is_first_cloud) -> double {
+            return (double)info->leg_info->path.get_cost(start, end, is_first_cloud);
+        };
+    }
+
     map<int, double> map_power;
     vector<double> env_score = info->game->env_score;
     for (int c = 0; c < 4; c++) {
@@ -29,7 +41,7 @@ BT::NodeStatus ExploreMap::tick() {
         }
     }
 
-    map<int, pair<int, int>> mu_time;
+    map<int, pair<double, int>> mu_time;
     for (const auto &mu : info->round_info->my_units) {
         mu_time[mu.first] = make_pair(0, mu.second->loc->index);
     }
@@ -37,9 +49,9 @@ BT::NodeStatus ExploreMap::tick() {
     for (const auto &power : map_power) {
         int mu_id = 0;
         int closest_loc = 0;
-        int shortest_dis = numeric_limits<int>::max();
+        double shortest_dis = numeric_limits<double>::max();
         for (const auto &mu : info->round_info->my_units) {
-            int dis = info->leg_info->path.get_cost(mu_time[mu.first].second, power.first) + mu_time[mu.first].first;
+            double dis = get_cost(mu_time[mu.first].second, power.first, true) + mu_time[mu.first].first;
             if (dis < shortest_dis) {
                 shortest_dis = dis;
                 mu_id = mu.first;
@@ -63,7 +75,7 @@ BT::NodeStatus ExploreMap::tick() {
     vector<dir_score> single_direction_score;
     for (const auto &mu : mu_first_power) {
         for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
-            double cost = info->leg_info->path.get_cost(info->round_info->my_units[mu.first]->loc->next[d], mu.second);
+            double cost = get_cost(info->round_info->my_units[mu.first]->loc->next[d]->index, mu.second, true);
             double score = map_power[mu.second] / (cost + 1);
             single_direction_score.emplace_back(dir_score(mu.first, d, score));
         }

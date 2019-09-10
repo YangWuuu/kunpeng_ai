@@ -30,6 +30,18 @@ void Player::parse_message_leg_start(cJSON *msg) {
         }
     }
 
+    cJSON *msg_clouds = cJSON_GetObjectItem(msg_maps, "cloud");
+    if (msg_clouds != nullptr) {
+        for (int i = 0; i < cJSON_GetArraySize(msg_clouds); i++) {
+            cJSON *msg_cloud = cJSON_GetArrayItem(msg_clouds, i);
+            cJSON *msg_x = cJSON_GetObjectItem(msg_cloud, "x");
+            cJSON *msg_y = cJSON_GetObjectItem(msg_cloud, "y");
+            int x = msg_x->valueint;
+            int y = msg_y->valueint;
+            leg_info->maps[x][y]->cloud = true;
+        }
+    }
+
     cJSON *msg_tunnels = cJSON_GetObjectItem(msg_maps, "tunnel");
     if (msg_tunnels != nullptr) {
         for (int i = 0; i < cJSON_GetArraySize(msg_tunnels); i++) {

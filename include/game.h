@@ -27,18 +27,26 @@ public:
         for (int i = 0 ; i < (int)leg_info->enemy_team.units.size(); i++) {
             enemy_units_map[leg_info->enemy_team.units[i]] = i;
         }
-        vec_danger.resize(leg_info->enemy_team.units.size(), vector<double>(leg_info->path.node_num, 1.0));
+        vec_danger.resize(leg_info->enemy_team.units.size(), vector<double>(leg_info->path.node_num, 10.0));
     }
 
     void update_round_info(const shared_ptr<RoundInfo> &round_info);
 
     bool isEnd() { return round_id >= 300; }
 
+    double get_cost(int start, int end);
+
 private:
     void update_score();
     void update_remain_life();
+    void update_map_power();
     void update_danger();
+    void update_first_cloud();
 
+    void update_dist();
+
+    void SPFA(int k);
+    bool relax(int u, int v, vector<double> &d);
 public:
     shared_ptr<LegStartInfo> leg_info;
 
@@ -51,12 +59,16 @@ public:
     vector<double> env_score_limit;
     vector<int> visit_time;
 
+    map<int, double> map_power;
+
     vector<shared_ptr<RoundInfo>> vec_round_info;
     int enemy_all_remain_life{};
     int my_all_remain_life{};
 
     map<int, int> enemy_units_map;
-    vector<vector<double >> vec_danger;
+    vector<vector<double>> vec_danger;
+
+    map<int, bool> map_first_cloud;
 
     bool eat_enemy{};
     bool run_away{};
@@ -67,6 +79,11 @@ public:
 private:
     set<int> see_alive_enemy;
     set<int> dead_enemy;
+
+    vector<bool> is_cal;
+    const double inf = 1e6;
+    vector<vector<double>> G;
+    vector<vector<double>> dist;
 };
 
 #endif //AI_YANG_GAME_H

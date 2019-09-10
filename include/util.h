@@ -72,7 +72,7 @@ const static vector<string> DIRECTION_STRING = {
         "NONE "
 };
 
-class Point {
+class Point : public enable_shared_from_this<Point> {
 public:
     using Ptr = shared_ptr<Point>;
 
@@ -89,12 +89,20 @@ public:
     }
 
     explicit Point(int _x, int _y, int _index) :
-            x(_x), y(_y), index(_index), tunnel(DIRECTION::NONE), wall(false), wormhole(nullptr), visited(false) {
+            x(_x), y(_y), index(_index), tunnel(DIRECTION::NONE), wall(false), cloud(false), wormhole(nullptr), visited(false) {
         next[DIRECTION::UP] = nullptr;
         next[DIRECTION::DOWN] = nullptr;
         next[DIRECTION::LEFT] = nullptr;
         next[DIRECTION::RIGHT] = nullptr;
         next[DIRECTION::NONE] = nullptr;
+    }
+
+    Ptr next_point(DIRECTION d, bool is_first_cloud=true) {
+        if (cloud && is_first_cloud) {
+            return shared_from_this();
+        } else {
+            return next[d];
+        }
     }
 
 public:
@@ -103,6 +111,7 @@ public:
     int index;
     DIRECTION tunnel;
     bool wall;
+    bool cloud;
     Ptr wormhole;
     map<DIRECTION, Ptr> next;
 
@@ -179,7 +188,11 @@ public:
             for (auto &dp : to_point(i)->next) {
                 int j = to_index(dp.second);
                 if (i != j) {
-                    G[i][j] = 1;
+                    if (to_point(i)->cloud) {
+                        G[i][j] = 2;
+                    } else {
+                        G[i][j] = 1;
+                    }
                 } else if (i == j) {
                     G[i][j] = 0;
                 }
@@ -189,20 +202,24 @@ public:
 //        SPFA();
     }
 
-    int get_cost(int start, int end) {
-        return dist[start][end];
+    int get_cost(int start, int end, bool is_first_cloud=true) {
+        if (!is_first_cloud && to_point(start)->cloud && start != end) {
+            return dist[start][end] - 1;
+        } else {
+            return dist[start][end];
+        }
     }
 
-    int get_cost(const Point::Ptr &start, int end) {
-        return dist[to_index(start)][end];
+    int get_cost(const Point::Ptr &start, int end, bool is_first_cloud=true) {
+        return get_cost(to_index(start), end, is_first_cloud);
     }
 
-    int get_cost(int start, const Point::Ptr &end) {
-        return dist[start][to_index(end)];
+    int get_cost(int start, const Point::Ptr &end, bool is_first_cloud=true) {
+        return get_cost(start, to_index(end), is_first_cloud);
     }
 
-    int get_cost(const Point::Ptr &start, const Point::Ptr &end) {
-        return dist[to_index(start)][to_index(end)];
+    int get_cost(const Point::Ptr &start, const Point::Ptr &end, bool is_first_cloud=true) {
+        return get_cost(to_index(start), to_index(end), is_first_cloud);
     }
 
 public:
@@ -352,6 +369,7 @@ public:
     }
 
     int node_num{};
+    vector<vector<int>> G;
 
 private:
     int to_index(const Point::Ptr &point) {
@@ -390,11 +408,12 @@ private:
                 int u = Q.front();
                 Q.pop();
                 is_in_Q[u] = false;
-                for (int v = 0; v < node_num; ++v)
+                for (int v = 0; v < node_num; ++v) {
                     if (relax(u, v, dist[k]) && !is_in_Q[v]) {
                         Q.push(v);
                         is_in_Q[v] = true;
                     }
+                }
             }
         }
     }
@@ -413,7 +432,7 @@ private:
     int width{};
 
     const int inf = 0xffff;
-    vector<vector<int>> G;
+
     vector<vector<int>> dist;
     vector<vector<int>> path;
 

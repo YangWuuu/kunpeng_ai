@@ -4,9 +4,13 @@
 
 void Game::update_round_info(const shared_ptr<RoundInfo> &round_info) {
     vec_round_info.emplace_back(round_info);
+    is_eat = round_info->mode == leg_info->my_team.force;
     update_score();
     update_remain_life();
+    update_map_power();
     update_danger();
+    update_first_cloud();
+    update_dist();
 
     eat_enemy = false;
     run_away = false;
@@ -18,9 +22,7 @@ void Game::update_round_info(const shared_ptr<RoundInfo> &round_info) {
 void Game::update_score() {
     auto &round_info = *(vec_round_info.end() - 1);
     round_id = round_info->round_id;
-    is_eat = round_info->mode == leg_info->my_team.force;
     my_units.clear();
-    //TODO enemy predict
     enemy_units.clear();
     for (auto &u : round_info->my_units) {
         auto &unit = *u.second;
@@ -97,6 +99,21 @@ void Game::update_remain_life() {
     }
 }
 
+void Game::update_map_power(){
+    auto &round_info = *(vec_round_info.end() - 1);
+    for (auto &unit : my_units) {
+        for (int n : leg_info->vision_grids[unit.second->loc->index]) {
+            auto iter = map_power.find(n);
+            if (iter != map_power.end()) {
+                map_power.erase(iter);
+            }
+        }
+    }
+    for (auto &power : round_info->powers) {
+        map_power[power.loc->index] = power.point;
+    }
+}
+
 void Game::update_danger() {
     auto &round_info = *(vec_round_info.end() - 1);
 
@@ -160,7 +177,7 @@ void Game::update_danger() {
         auto iter = round_info->enemy_units.find(id);
         if (iter != round_info->enemy_units.end()) {
             danger = vector<double>(leg_info->path.node_num, 0.0);
-            danger[iter->second->loc->index] = leg_info->path.node_num;
+            danger[iter->second->loc->index] = leg_info->path.node_num * 10.0;
         }
         vector<double> danger_tmp(leg_info->path.node_num, 0.0);
         vector<int> next_index;
@@ -186,26 +203,131 @@ void Game::update_danger() {
         danger = danger_tmp;
 
         //twice
-        vector<double> danger_tmp2(leg_info->path.node_num, 0.0);
-        for (int i = 0; i < leg_info->path.node_num; i++) {
-            Point::Ptr p = leg_info->path.to_point(i);
-            if (p->tunnel != DIRECTION::NONE || p->wall) {
-                continue;
-            }
-            if (equal_double(danger[i], 1e-6)) {
-                continue;
-            }
-            next_index.clear();
-            for (auto &np : p->next) {
-                if (np.second->tunnel != DIRECTION::NONE || np.second->wall) {
+        if (is_eat) {
+            vector<double> danger_tmp2(leg_info->path.node_num, 0.0);
+            for (int i = 0; i < leg_info->path.node_num; i++) {
+                Point::Ptr p = leg_info->path.to_point(i);
+                if (p->tunnel != DIRECTION::NONE || p->wall) {
                     continue;
                 }
-                next_index.emplace_back(np.second->index);
+                if (equal_double(danger[i], 1e-6)) {
+                    continue;
+                }
+                next_index.clear();
+                for (auto &np : p->next) {
+                    if (np.second->tunnel != DIRECTION::NONE || np.second->wall) {
+                        continue;
+                    }
+                    next_index.emplace_back(np.second->index);
+                }
+                for (int ni : next_index) {
+                    danger_tmp2[ni] += danger[i] / next_index.size();
+                }
             }
-            for (int ni : next_index) {
-                danger_tmp2[ni] += danger[i] / next_index.size();
+            danger = danger_tmp2;
+        }
+    }
+}
+
+void Game::update_first_cloud() {
+    auto &round_info = *(vec_round_info.end() - 1);
+    for (int mu_id : leg_info->my_team.units) {
+        map_first_cloud[mu_id] = true;
+    }
+    for (int eu_id : leg_info->enemy_team.units) {
+        map_first_cloud[eu_id] = true;
+    }
+    if (vec_round_info.size() > 1) {
+        auto &prev_round_info = *(vec_round_info.end() - 2);
+        for (auto &mu : round_info->my_units) {
+            auto iter = prev_round_info->my_units.find(mu.first);
+            if (iter != prev_round_info->my_units.end()) {
+                if (!mu.second->loc->cloud) {
+                    map_first_cloud[mu.first] = false;
+                } else {
+                    if (mu.second->loc->index == iter->second->loc->index) {
+                        map_first_cloud[mu.first] = false;
+                    }
+                }
             }
         }
-        danger = danger_tmp2;
+        for (auto &eu : round_info->enemy_units) {
+            auto iter = prev_round_info->enemy_units.find(eu.first);
+            if (iter != prev_round_info->enemy_units.end()) {
+                if (!eu.second->loc->cloud) {
+                    map_first_cloud[eu.first] = false;
+                } else {
+                    if (eu.second->loc->index == iter->second->loc->index) {
+                        map_first_cloud[eu.first] = false;
+                    }
+                }
+            }
+        }
     }
+}
+
+void Game::update_dist() {
+    int node_num = leg_info->path.node_num;
+    G.resize(node_num, vector<double>(node_num, 0.0));
+    for (auto &eu : enemy_units_map) {
+        int id = eu.first;
+        int pos = eu.second;
+        vector<double> &danger = vec_danger[pos];
+        if (dead_enemy.find(id) != dead_enemy.end()) {
+            danger = vector<double>(leg_info->path.node_num, 0.0);
+            continue;
+        }
+        for (int i = 0; i < node_num; i++) {
+            for (int j = 0; j < node_num; j++) {
+                if (leg_info->path.G[i][j] < inf) {
+                    G[i][j] += leg_info->path.G[i][j] * danger[j];
+                }
+            }
+        }
+    }
+    dist.resize(node_num, vector<double>(node_num, inf));
+    is_cal.assign(node_num, false);
+}
+
+bool Game::relax(int u, int v, vector<double> &d) {
+    double nlen = d[u] + G[u][v];
+    if (nlen < d[v]) {
+        d[v] = nlen;
+        return true;
+    }
+    return false;
+}
+
+void Game::SPFA(int k) {
+    int node_num = leg_info->path.node_num;
+    if (is_cal[k]) {
+        return;
+    }
+    is_cal[k] = true;
+    Point::Ptr point = leg_info->path.to_point(k);
+    if (point->wall || point->tunnel != DIRECTION::NONE || point->wormhole) {
+        return;
+    }
+    queue<int> Q;
+    vector<bool> is_in_Q(node_num, false);
+
+    Q.push(k);
+    is_in_Q[k] = true;
+    dist[k][k] = 0;
+    while (!Q.empty()) {
+        int u = Q.front();
+        Q.pop();
+        is_in_Q[u] = false;
+        for (int v = 0; v < node_num; ++v) {
+            if (relax(u, v, dist[k]) && !is_in_Q[v]) {
+                Q.push(v);
+                is_in_Q[v] = true;
+            }
+        }
+    }
+}
+
+double Game::get_cost(int start, int end) {
+    SPFA(start);
+    return dist[start][end];
 }
