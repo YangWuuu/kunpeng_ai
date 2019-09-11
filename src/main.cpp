@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
         log_error("WSAStartup failed\n");
         return false;
     }
-    system("mkdir -p ./log");
-    log_path = "./log/" + log_name;
+    system("mkdir log");
+    log_path = "log/" + log_name;
 #endif
 
     bool debug = argc > 4 && string(argv[4]) == "debug";

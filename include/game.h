@@ -27,7 +27,7 @@ public:
         for (int i = 0 ; i < (int)leg_info->enemy_team.units.size(); i++) {
             enemy_units_map[leg_info->enemy_team.units[i]] = i;
         }
-        vec_danger.resize(leg_info->enemy_team.units.size(), vector<double>(leg_info->path.node_num, 10.0));
+        vec_danger.resize(leg_info->enemy_team.units.size(), vector<double>(leg_info->path.node_num, 100.0));
     }
 
     void update_round_info(const shared_ptr<RoundInfo> &round_info);
@@ -67,6 +67,7 @@ public:
 
     map<int, int> enemy_units_map;
     vector<vector<double>> vec_danger;
+    vector<double> all_danger;
 
     map<int, bool> map_first_cloud;
 
@@ -76,12 +77,17 @@ public:
     bool avoid_enemy{};
     bool out_vision{};
 
+    bool all_enemy_in_vision{};
+
+    vector<bool> danger_in_vision;
+    vector<bool> danger_eat_in_vision;
+
 private:
     set<int> see_alive_enemy;
     set<int> dead_enemy;
 
     vector<bool> is_cal;
-    const double inf = 1e6;
+    const double inf = 1e10;
     vector<vector<double>> G;
     vector<vector<double>> dist;
 };

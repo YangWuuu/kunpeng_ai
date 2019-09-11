@@ -35,7 +35,7 @@ BT::NodeStatus EatPower::tick() {
                 continue;
             }
             for (const auto &mu : info->round_info->my_units) {
-                double dis = (double)info->leg_info->path.get_cost(mu_time[mu.first].second, power.first, info->game->map_first_cloud[mu.first]) + mu_time[mu.first].first;
+                double dis = get_cost(mu_time[mu.first].second, power.first, info->game->map_first_cloud[mu.first]) + mu_time[mu.first].first;
                 if (dis < shortest_dis) {
                     shortest_dis = dis;
                     mu_id = mu.first;
@@ -63,9 +63,10 @@ BT::NodeStatus EatPower::tick() {
     vector<dir_score> single_direction_score;
     for (const auto &mu : mu_first_power) {
         for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
-            double cost = info->leg_info->path.get_cost(info->round_info->my_units[mu.first]->loc->next[d], mu.second);
+            double cost = get_cost(info->round_info->my_units[mu.first]->loc->next[d]->index, mu.second, true);
             double score = map_power[mu.second] / (cost + 1);
             single_direction_score.emplace_back(dir_score(mu.first, d, score));
+            log_info("mu_id: %d, dir: %d cost: %f score:%f", mu.first, d, cost, score);
         }
     }
 

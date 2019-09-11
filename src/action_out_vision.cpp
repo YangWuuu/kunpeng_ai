@@ -8,7 +8,10 @@ BT::NodeStatus OutVision::tick() {
     if (!info->game->out_vision) {
         return BT::NodeStatus::SUCCESS;
     }
-
+    vector<int> now_loc;
+    for (auto &mu : info->round_info->my_units) {
+        now_loc.emplace_back(mu.second->loc->index);
+    }
     vector<double> direction_score(info->task_score->score_num, 0.0);
     for (int idx = 0; idx < info->task_score->score_num; idx++) {
         map<int, DIRECTION> &map_direction = info->task_score->map_direction[idx];
@@ -26,13 +29,14 @@ BT::NodeStatus OutVision::tick() {
             continue;
         }
         double score = 0.0;
-        for (auto &eu : info->game->enemy_units_map) {
-            int pos = eu.second;
-            vector<double> &danger = info->game->vec_danger[pos];
-            for (int loc : next_loc) {
-                for (int index : info->leg_info->vision_grids[loc]) {
-                    score -= danger[index];
-                }
+        for (int e_loc = 0; e_loc < info->leg_info->path.node_num; e_loc++) {
+            int danger = info->game->all_danger[e_loc];
+            if (danger < 1e-2) {
+                continue;
+            }
+            for (int i_loc : next_loc) {
+                double i_dis = info->leg_info->path.get_cost(e_loc, i_loc);
+                score -= (40 - i_dis) * danger;
             }
         }
         direction_score[idx] = score;

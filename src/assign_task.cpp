@@ -20,6 +20,7 @@ BT::NodeStatus AssignTask::tick() {
     if (info->game->round_id < 150 && !info->game->is_eat) {
         if (info->game->my_all_remain_life > 1) {
             info->game->run_away = true;
+            info->game->avoid_enemy = true;
 //            info->game->out_vision = true;
         }
     }

@@ -45,14 +45,14 @@ void Game::update_score() {
         }
     }
     for (auto &power : round_info->powers) {
-        env_score_limit[power.loc->index] = (double)power.point / (leg_info->vision * leg_info->vision);
+        env_score_limit[power.loc->index] = (double) power.point / (leg_info->vision * leg_info->vision);
         power_score[power.loc->index] = power.point;
     }
 }
 
 void Game::update_remain_life() {
     auto &round_info = *(vec_round_info.end() - 1);
-    my_all_remain_life = (int)round_info->my_units.size() + round_info->my_remain_life;
+    my_all_remain_life = (int) round_info->my_units.size() + round_info->my_remain_life;
     if (vec_round_info.size() == 1) {
         enemy_all_remain_life = 4 + round_info->enemy_remain_life;
     } else {
@@ -66,21 +66,23 @@ void Game::update_remain_life() {
             for (auto &mu : round_info->my_units) {
                 round_unit_score += mu.second->score;
             }
-            int sub_score = (round_info->my_point - prev_round_info->my_point) - (round_unit_score - prev_round_unit_score);
+            int sub_score =
+                    (round_info->my_point - prev_round_info->my_point) - (round_unit_score - prev_round_unit_score);
             if (sub_score > 0) {
                 enemy_all_remain_life -= sub_score / 10;
                 see_alive_enemy.clear();
-                log_info("round_id: %d sub_score: %d enemy_all_remain_life: %d", round_info->round_id, sub_score, enemy_all_remain_life);
+//                log_info("round_id: %d sub_score: %d enemy_all_remain_life: %d", round_info->round_id, sub_score, enemy_all_remain_life);
             }
             if (sub_score % 10 != 0) {
                 log_error("sub_score: %d", sub_score);
             }
         }
     }
+    log_info("round_id: %d my_all_remain_life: %d enemy_all_remain_life: %d", round_info->round_id, my_all_remain_life, enemy_all_remain_life);
     for (auto &eu : round_info->enemy_units) {
         see_alive_enemy.insert(eu.first);
     }
-    if ((int)see_alive_enemy.size() == enemy_all_remain_life) {
+    if ((int) see_alive_enemy.size() == enemy_all_remain_life) {
         for (int enemy_id : leg_info->enemy_team.units) {
             auto iter = see_alive_enemy.find(enemy_id);
             if (iter == see_alive_enemy.end()) {
@@ -99,7 +101,7 @@ void Game::update_remain_life() {
     }
 }
 
-void Game::update_map_power(){
+void Game::update_map_power() {
     auto &round_info = *(vec_round_info.end() - 1);
     for (auto &unit : my_units) {
         for (int n : leg_info->vision_grids[unit.second->loc->index]) {
@@ -177,7 +179,7 @@ void Game::update_danger() {
         auto iter = round_info->enemy_units.find(id);
         if (iter != round_info->enemy_units.end()) {
             danger = vector<double>(leg_info->path.node_num, 0.0);
-            danger[iter->second->loc->index] = leg_info->path.node_num * 10.0;
+            danger[iter->second->loc->index] = leg_info->path.node_num * 100.0;
         }
         vector<double> danger_tmp(leg_info->path.node_num, 0.0);
         vector<int> next_index;
@@ -227,6 +229,25 @@ void Game::update_danger() {
             danger = danger_tmp2;
         }
     }
+
+    all_enemy_in_vision = false;
+    if (round_info->enemy_units.size() + dead_enemy.size() >= 4) {
+        all_enemy_in_vision = true;
+    }
+
+    int node_num = leg_info->path.node_num;
+    danger_in_vision.assign(node_num, false);
+    danger_eat_in_vision.assign(node_num, false);
+    for (auto &eu : round_info->enemy_units) {
+        int index = eu.second->loc->index;
+        Point::Ptr p = leg_info->path.to_point(index);
+        for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
+            danger_in_vision[p->next[d]->index] = true;
+            for (DIRECTION dd : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
+                danger_eat_in_vision[p->next[d]->next[dd]->index] = true;
+            }
+        }
+    }
 }
 
 void Game::update_first_cloud() {
@@ -267,25 +288,58 @@ void Game::update_first_cloud() {
 }
 
 void Game::update_dist() {
+    auto &round_info = *(vec_round_info.end() - 1);
     int node_num = leg_info->path.node_num;
-    G.resize(node_num, vector<double>(node_num, 0.0));
+    G = vector<vector<double>>(node_num, vector<double>(node_num, inf));
+    all_danger.assign(node_num, 0.0);
     for (auto &eu : enemy_units_map) {
         int id = eu.first;
         int pos = eu.second;
         vector<double> &danger = vec_danger[pos];
         if (dead_enemy.find(id) != dead_enemy.end()) {
-            danger = vector<double>(leg_info->path.node_num, 0.0);
             continue;
         }
         for (int i = 0; i < node_num; i++) {
-            for (int j = 0; j < node_num; j++) {
-                if (leg_info->path.G[i][j] < inf) {
-                    G[i][j] += leg_info->path.G[i][j] * danger[j];
+            all_danger[i] += danger[i];
+        }
+    }
+    set<int> next_loc_set;
+    for (auto &eu : round_info->enemy_units) {
+        for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
+            int next_loc = eu.second->loc->next[d]->index;
+            next_loc_set.insert(next_loc);
+        }
+    }
+    for (int i = 0; i < node_num; i++) {
+        for (auto &dp : leg_info->path.to_point(i)->next) {
+            int j = dp.second->index;
+            if (i != j) {
+                if (leg_info->path.to_point(i)->cloud) {
+                    G[i][j] = 2;
+                } else {
+                    G[i][j] = 1;
                 }
+                if (((is_eat && leg_info->path.is_eat_danger_index[j]) || (!is_eat && leg_info->path.is_danger_index[j]))
+                    && !all_enemy_in_vision) {
+                    G[i][j] = 1e6;
+                }
+                Point::Ptr p = leg_info->path.to_point(j)->wormhole;
+                if (p) {
+                    if (((is_eat && leg_info->path.is_eat_danger_index[p->index]) || (!is_eat && leg_info->path.is_danger_index[p->index]))
+                        && !all_enemy_in_vision) {
+                        G[i][j] = 1e6;
+                    }
+                }
+                if (next_loc_set.find(j) != next_loc_set.end()) {
+                    G[i][j] = 1e6;
+                }
+            } else if (i == j) {
+                G[i][j] = 0;
             }
         }
     }
-    dist.resize(node_num, vector<double>(node_num, inf));
+
+    dist.assign(node_num, vector<double>(node_num, inf));
     is_cal.assign(node_num, false);
 }
 

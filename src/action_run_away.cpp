@@ -11,6 +11,9 @@ BT::NodeStatus RunAway::tick() {
     vector<int> reach_size(info->leg_info->path.node_num, info->leg_info->path.node_num);
     for (auto &eu : info->round_info->enemy_units) {
         reach_size[eu.second->loc->index] = 0;
+        for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
+            reach_size[eu.second->loc->next[d]->index] = 0;
+        }
     }
     set<int> next_loc_set;
     for (auto &mu : info->round_info->my_units) {

@@ -165,9 +165,10 @@ public:
 
 class Path {
 public:
-    void setWidthHeight(int _width, int _height) {
+    void setWidthHeight(int _width, int _height, int _vision) {
         width = _width;
         height = _height;
+        vision = _vision;
         node_num = width * height;
     }
 
@@ -200,6 +201,7 @@ public:
         }
         Floyd();
 //        SPFA();
+        cal_danger_index();
     }
 
     int get_cost(int start, int end, bool is_first_cloud=true) {
@@ -371,6 +373,9 @@ public:
     int node_num{};
     vector<vector<int>> G;
 
+    vector<bool> is_danger_index;
+    vector<bool> is_eat_danger_index;
+
 private:
     int to_index(const Point::Ptr &point) {
         return point->x + point->y * width;
@@ -392,7 +397,7 @@ private:
     }
 
     void SPFA() {
-        dist.resize(node_num, vector<int>(node_num, inf));
+        dist.assign(node_num, vector<int>(node_num, inf));
         for (int k = 0; k < node_num; k++) {
             Point::Ptr point = to_point(k);
             if (point->wall || point->tunnel != DIRECTION::NONE || point->wormhole) {
@@ -427,9 +432,26 @@ private:
         return false;
     }
 
+    void cal_danger_index() {
+        is_danger_index.assign(node_num, false);
+        is_eat_danger_index.assign(node_num, false);
+        for (int index = 0; index < node_num; index++) {
+            Point::Ptr p = to_point(index);
+            for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
+                if (Point::max_xy(p, p->next[d]) > vision) {
+                    is_danger_index[p->next[d]->index] = true;
+                    for (DIRECTION dd : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
+                        is_eat_danger_index[p->next[d]->next[dd]->index] = true;
+                    }
+                }
+            }
+        }
+    }
+
     map<int, map<int, Point::Ptr>> *maps{};
     int height{};
     int width{};
+    int vision{};
 
     const int inf = 0xffff;
 
@@ -469,7 +491,7 @@ public:
         width = w;
         height = h;
         vision = v;
-        path.setWidthHeight(width, height);
+        path.setWidthHeight(width, height, vision);
         for (int i = 0; i < width; i++) {
             map<int, Point::Ptr> tmp;
             for (int j = 0; j < height; j++) {
