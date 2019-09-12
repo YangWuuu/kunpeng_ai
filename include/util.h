@@ -400,7 +400,7 @@ private:
         dist.assign(node_num, vector<int>(node_num, inf));
         for (int k = 0; k < node_num; k++) {
             Point::Ptr point = to_point(k);
-            if (point->wall || point->tunnel != DIRECTION::NONE || point->wormhole) {
+            if (point->wall || point->tunnel != DIRECTION::NONE) {
                 continue;
             }
             queue<int> Q;

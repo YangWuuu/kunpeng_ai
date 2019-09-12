@@ -321,17 +321,17 @@ void Game::update_dist() {
                 }
                 if (((is_eat && leg_info->path.is_eat_danger_index[j]) || (!is_eat && leg_info->path.is_danger_index[j]))
                     && !all_enemy_in_vision) {
-                    G[i][j] = 1e6;
+                    G[i][j] = 100;
                 }
                 Point::Ptr p = leg_info->path.to_point(j)->wormhole;
                 if (p) {
                     if (((is_eat && leg_info->path.is_eat_danger_index[p->index]) || (!is_eat && leg_info->path.is_danger_index[p->index]))
                         && !all_enemy_in_vision) {
-                        G[i][j] = 1e6;
+                        G[i][j] = 100;
                     }
                 }
                 if (next_loc_set.find(j) != next_loc_set.end()) {
-                    G[i][j] = 1e6;
+                    G[i][j] = 100;
                 }
             } else if (i == j) {
                 G[i][j] = 0;
@@ -359,7 +359,7 @@ void Game::SPFA(int k) {
     }
     is_cal[k] = true;
     Point::Ptr point = leg_info->path.to_point(k);
-    if (point->wall || point->tunnel != DIRECTION::NONE || point->wormhole) {
+    if (point->wall || point->tunnel != DIRECTION::NONE) {
         return;
     }
     queue<int> Q;

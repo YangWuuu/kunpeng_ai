@@ -23,6 +23,10 @@ BT::NodeStatus ExploreMap::tick() {
         double max_score = -numeric_limits<double>::max();
         int max_score_loc = 0;
         for (int n = 0; n < info->leg_info->path.node_num; n++) {
+            Point::Ptr point = info->leg_info->path.to_point(n);
+            if (point->wall || point->tunnel != DIRECTION::NONE) {
+                continue;
+            }
             double score = 0.0;
             for (auto &g : info->leg_info->vision_grids[n]) {
                 score += env_score[g];
@@ -34,6 +38,7 @@ BT::NodeStatus ExploreMap::tick() {
         }
         if (!equal_double(max_score, 1e-6)) {
             map_power[max_score_loc] = max_score;
+            log_info("max_score_loc: %d max_score: %f", max_score_loc, max_score);
             Point::Ptr point = info->leg_info->path.to_point(max_score_loc);
             for (auto &g : info->leg_info->vision_grids[point->index]) {
                 env_score[g] = 0.0;
@@ -41,28 +46,30 @@ BT::NodeStatus ExploreMap::tick() {
         }
     }
 
-    map<int, pair<double, int>> mu_time;
-    for (const auto &mu : info->round_info->my_units) {
-        mu_time[mu.first] = make_pair(0, mu.second->loc->index);
-    }
+//    map<int, pair<double, int>> mu_time;
+//    for (const auto &mu : info->round_info->my_units) {
+//        mu_time[mu.first] = make_pair(0, mu.second->loc->index);
+//    }
     map<int, int> mu_first_power;
     for (const auto &power : map_power) {
-        int mu_id = 0;
-        int closest_loc = 0;
+        int mu_id = -1;
+        int power_id = 0;
         double shortest_dis = numeric_limits<double>::max();
         for (const auto &mu : info->round_info->my_units) {
-            double dis = get_cost(mu_time[mu.first].second, power.first, true) + mu_time[mu.first].first;
+            if (mu_first_power.count(mu.first) > 0) {
+                continue;
+            }
+            double dis = get_cost(mu.second->loc->index, power.first, true);
             if (dis < shortest_dis) {
                 shortest_dis = dis;
                 mu_id = mu.first;
-                closest_loc = mu_time[mu.first].second;
+                power_id = power.first;
             }
         }
-        if (mu_first_power.count(mu_id) == 0) {
+        if (mu_id != -1 && mu_first_power.count(mu_id) == 0) {
             mu_first_power[mu_id] = power.first;
+            log_info("mu_id: %d  map_power_id: %d  map_power_score: %f", mu_id, power_id, map_power[power_id]);
         }
-        mu_time[mu_id].first += shortest_dis;
-        mu_time[mu_id].second = closest_loc;
     }
     struct dir_score {
         dir_score(int _mu_id, DIRECTION _dir, double _score) :
@@ -74,10 +81,13 @@ BT::NodeStatus ExploreMap::tick() {
     };
     vector<dir_score> single_direction_score;
     for (const auto &mu : mu_first_power) {
+        Point::Ptr p = info->round_info->my_units[mu.first]->loc;
         for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
-            double cost = get_cost(info->round_info->my_units[mu.first]->loc->next[d]->index, mu.second, true);
-            double score = map_power[mu.second] / (cost + 1);
+            double cost_a = get_cost(p->index, p->next[d]->index, true);
+            double cost_b = get_cost(p->next[d]->index, mu.second, true);
+            double score = map_power[mu.second] / (max(1.0, cost_a) + cost_b + 1);
             single_direction_score.emplace_back(dir_score(mu.first, d, score));
+            log_info("mu_id: %d, dir: %d cost_a: %f cost_b: %f score:%f", mu.first, d, cost_a, cost_b, score);
         }
     }
 

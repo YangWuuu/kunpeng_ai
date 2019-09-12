@@ -66,7 +66,7 @@ BT::NodeStatus RunAway::tick() {
     for (int idx = 0; idx < info->task_score->score_num; idx++) {
         map<int, DIRECTION> &map_direction = info->task_score->map_direction[idx];
         for (auto &map_dir : map_direction) {
-            auto next_point = info->round_info->my_units[map_dir.first]->loc->next[map_dir.second];
+            auto next_point = info->round_info->my_units[map_dir.first]->loc->next_point(map_dir.second, info->game->map_first_cloud[map_dir.first]);
             direction_score[idx] += get_score(reach_size[next_point->index]);
         }
     }

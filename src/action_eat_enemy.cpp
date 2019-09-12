@@ -3,6 +3,27 @@
 
 #include "player.h"
 
+vector<vector<int>> choose_three(const vector<int> &now_loc, const vector<int> &next_loc) {
+    if (next_loc.size() <= 3) {
+        return {next_loc};
+    }
+    vector<vector<int>> ret;
+    vector<vector<int>> choose_index = {{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}};
+    for (auto &index : choose_index) {
+        bool is_drop = true;
+        for (int i : index) {
+            if (now_loc[i] != next_loc[i]) {
+                is_drop = false;
+                break;
+            }
+        }
+        if (!is_drop) {
+            ret.emplace_back(vector<int>({next_loc[index[0]], next_loc[index[1]], next_loc[index[2]]}));
+        }
+    }
+    return ret;
+}
+
 BT::NodeStatus EatEnemy::tick() {
     auto info = config().blackboard->get<Player *>("info");
 
@@ -31,33 +52,35 @@ BT::NodeStatus EatEnemy::tick() {
             continue;
         }
         sort(next_loc.begin(), next_loc.end());
-        for (auto &eu : info->round_info->enemy_units) {
-            double min_score = numeric_limits<double>::max();
-            for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
-                auto next_point = eu.second->loc->next_point(d, info->game->map_first_cloud[eu.first]);
-                if (d != DIRECTION::NONE && next_point == eu.second->loc) {
-                    continue;
-                }
-                int enemy_loc = next_point->index;
-                double score;
-                if (find(now_loc.begin(), now_loc.end(), enemy_loc) != now_loc.end() ||
-                    find(next_loc.begin(), next_loc.end(), enemy_loc) != next_loc.end()) {
-                    score = 10000;  // must be dead
-                }
-                else {
-                    int remain_loc_num = info->leg_info->path.get_intersection_size(next_loc, enemy_loc);
-                    double total_dis = 0.0;
-                    for (auto& nl : next_loc) {
-                        total_dis += info->leg_info->path.get_cost(nl, enemy_loc);
+        for (vector<int> &choose_next_loc : choose_three(now_loc, next_loc)) {
+            for (auto &eu : info->round_info->enemy_units) {
+                double min_score = numeric_limits<double>::max();
+                for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
+                    auto next_point = eu.second->loc->next_point(d, info->game->map_first_cloud[eu.first]);
+                    if (d != DIRECTION::NONE && next_point == eu.second->loc) {
+                        continue;
                     }
-                    score = 40000.0 / (5.0 + remain_loc_num) + 400.0 / (1.0 + total_dis);
+                    int enemy_loc = next_point->index;
+                    double score;
+                    if (find(now_loc.begin(), now_loc.end(), enemy_loc) != now_loc.end() ||
+                        find(choose_next_loc.begin(), choose_next_loc.end(), enemy_loc) != choose_next_loc.end()) {
+                        score = 10000;  // must be dead
+                    }
+                    else {
+                        int remain_loc_num = info->leg_info->path.get_intersection_size(choose_next_loc, enemy_loc);
+                        double total_dis = 0.0;
+                        for (auto& nl : choose_next_loc) {
+                            total_dis += info->leg_info->path.get_cost(nl, enemy_loc);
+                        }
+                        score = 40000.0 / (5.0 + remain_loc_num) + 400.0 / (1.0 + total_dis);
+                    }
+                    if (score < min_score) {
+                        min_score = score;
+                    }
                 }
-                if (score < min_score) {
-                    min_score = score;
-                }
-            }
-            direction_score[idx] = max({min_score, direction_score[idx]});
+                direction_score[idx] = max({min_score, direction_score[idx]});
 //            direction_score[idx] += min_score;
+            }
         }
     }
 

@@ -62,11 +62,13 @@ BT::NodeStatus EatPower::tick() {
     };
     vector<dir_score> single_direction_score;
     for (const auto &mu : mu_first_power) {
+        Point::Ptr p = info->round_info->my_units[mu.first]->loc;
         for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
-            double cost = get_cost(info->round_info->my_units[mu.first]->loc->next[d]->index, mu.second, true);
-            double score = map_power[mu.second] / (cost + 1);
+            double cost_a = get_cost(p->index, p->next[d]->index, true);
+            double cost_b = get_cost(p->next[d]->index, mu.second, true);
+            double score = map_power[mu.second] / (max(1.0, cost_a) + cost_b + 1);
             single_direction_score.emplace_back(dir_score(mu.first, d, score));
-            log_info("mu_id: %d, dir: %d cost: %f score:%f", mu.first, d, cost, score);
+            log_info("mu_id: %d, dir: %d cost_a: %f cost_b: %f score:%f", mu.first, d, cost_a, cost_b, score);
         }
     }
 
