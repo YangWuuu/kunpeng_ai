@@ -61,6 +61,10 @@ BT::NodeStatus EatEnemy::tick() {
                         continue;
                     }
                     int enemy_loc = next_point->index;
+                    if (info->game->map_enemy_predict[eu.first]) {
+                        enemy_loc = info->game->map_enemy_loc[eu.first];
+//                        log_info("eu_id: %d enemy_loc: %d predict: %d", eu.first, next_point->index, enemy_loc);
+                    }
                     double score;
                     if (find(now_loc.begin(), now_loc.end(), enemy_loc) != now_loc.end() ||
                         find(choose_next_loc.begin(), choose_next_loc.end(), enemy_loc) != choose_next_loc.end()) {

@@ -30,7 +30,7 @@ BT::NodeStatus OutVision::tick() {
         }
         double score = 0.0;
         for (int e_loc = 0; e_loc < info->leg_info->path.node_num; e_loc++) {
-            int danger = info->game->all_danger[e_loc];
+            double danger = info->game->all_danger[e_loc];
             if (danger < 1e-2) {
                 continue;
             }

@@ -11,6 +11,7 @@ void Game::update_round_info(const shared_ptr<RoundInfo> &round_info) {
     update_danger();
     update_first_cloud();
     update_dist();
+    predict_enemy();
 
     eat_enemy = false;
     run_away = false;
@@ -78,7 +79,8 @@ void Game::update_remain_life() {
             }
         }
     }
-    log_info("round_id: %d my_all_remain_life: %d enemy_all_remain_life: %d", round_info->round_id, my_all_remain_life, enemy_all_remain_life);
+    log_info("round_id: %d my_all_remain_life: %d enemy_all_remain_life: %d", round_info->round_id, my_all_remain_life,
+             enemy_all_remain_life);
     for (auto &eu : round_info->enemy_units) {
         see_alive_enemy.insert(eu.first);
     }
@@ -319,13 +321,15 @@ void Game::update_dist() {
                 } else {
                     G[i][j] = 1;
                 }
-                if (((is_eat && leg_info->path.is_eat_danger_index[j]) || (!is_eat && leg_info->path.is_danger_index[j]))
+                if (((is_eat && leg_info->path.is_eat_danger_index[j]) ||
+                     (!is_eat && leg_info->path.is_danger_index[j]))
                     && !all_enemy_in_vision) {
                     G[i][j] = 100;
                 }
                 Point::Ptr p = leg_info->path.to_point(j)->wormhole;
                 if (p) {
-                    if (((is_eat && leg_info->path.is_eat_danger_index[p->index]) || (!is_eat && leg_info->path.is_danger_index[p->index]))
+                    if (((is_eat && leg_info->path.is_eat_danger_index[p->index]) ||
+                         (!is_eat && leg_info->path.is_danger_index[p->index]))
                         && !all_enemy_in_vision) {
                         G[i][j] = 100;
                     }
@@ -384,4 +388,47 @@ void Game::SPFA(int k) {
 double Game::get_cost(int start, int end) {
     SPFA(start);
     return dist[start][end];
+}
+
+void Game::predict_enemy() {
+    map_enemy_predict.clear();
+    map_enemy_loc.clear();
+    auto &now_round_info = *(vec_round_info.end() - 1);
+    for (int enemy_id : leg_info->enemy_team.units) {
+        for (int repeat_interval = 1; repeat_interval < 5; repeat_interval++) {
+            if (map_enemy_predict[enemy_id]) {
+                continue;
+            }
+            if (3 * repeat_interval >= vec_round_info.size()) {
+                continue;
+            }
+            bool is_break = false;
+            vector<int> loc_record;
+            for (int i = 0; i < 4 * repeat_interval; i++) {
+                auto &round_info = *(vec_round_info.end() - 1 - i);
+                if (round_info->enemy_units.find(enemy_id) == round_info->enemy_units.end()) {
+                    is_break = true;
+                    break;
+                }
+                loc_record.emplace_back(round_info->enemy_units[enemy_id]->loc->index);
+            }
+            if (is_break) {
+                break;
+            }
+            bool is_repeat = true;
+            for (int r = 0; r < repeat_interval; r++) {
+                if (loc_record[r] != loc_record[r + 1] || loc_record[r + 1] != loc_record[r + 2] ||
+                    loc_record[r + 2] != loc_record[r + 3]) {
+                    is_repeat = false;
+                    break;
+                }
+            }
+            if (is_repeat) {
+                map_enemy_predict[enemy_id] = true;
+                map_enemy_loc[enemy_id] = loc_record[loc_record.size() - repeat_interval];
+                log_info("round_id: %d is_eat: %d enemy_predict_id: %d repeat_interval: %d loc: %d",
+                         now_round_info->round_id, is_eat, enemy_id, repeat_interval, map_enemy_loc[enemy_id]);
+            }
+        }
+    }
 }

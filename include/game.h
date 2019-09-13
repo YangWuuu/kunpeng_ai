@@ -44,6 +44,7 @@ private:
     void update_first_cloud();
 
     void update_dist();
+    void predict_enemy();
 
     void SPFA(int k);
     bool relax(int u, int v, vector<double> &d);
@@ -81,6 +82,9 @@ public:
 
     vector<bool> danger_in_vision;
     vector<bool> danger_eat_in_vision;
+
+    map<int, bool> map_enemy_predict;
+    map<int, int> map_enemy_loc;
 
 private:
     set<int> see_alive_enemy;
