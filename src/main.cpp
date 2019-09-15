@@ -4,7 +4,6 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
-#include <exception>
 
 #include "player.h"
 #include "log.h"
@@ -178,12 +177,10 @@ int main(int argc, char *argv[]) {
     if (fp) {
         fclose(fp);
     }
-    try {
-        string cmd = "sshpass -p yc45j scp -o StrictHostKeyChecking=no " + log_path + " root@119.3.167.104:/root/log/" + log_name;
-        int ret_id = system(cmd.c_str());
-        log_error("cmd: %s ret: %d", cmd.c_str(), ret_id);
-    } catch(exception &e) {
-        log_error("exception: %s", e.what());
-    }
+
+    string cmd = "sshpass -p yc45j scp -o StrictHostKeyChecking=no " + log_path + " root@119.3.167.104:/root/log/" + log_name;
+    system(cmd.c_str());
+    log_error("cmd: %s", cmd.c_str());
+
     return 0;
 }
