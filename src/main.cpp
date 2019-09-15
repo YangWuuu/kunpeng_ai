@@ -180,7 +180,6 @@ int main(int argc, char *argv[]) {
 
     string cmd = "sshpass -p yc45j scp -o StrictHostKeyChecking=no " + log_path + " root@119.3.167.104:/root/log/" + log_name;
     system(cmd.c_str());
-    log_error("cmd: %s", cmd.c_str());
 
     return 0;
 }
