@@ -85,6 +85,7 @@ public:
 
     map<int, bool> map_enemy_predict;
     map<int, int> map_enemy_loc;
+    map<int, int> map_enemy_repeat;
 
 private:
     set<int> see_alive_enemy;

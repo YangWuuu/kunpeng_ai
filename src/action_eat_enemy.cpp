@@ -61,14 +61,13 @@ BT::NodeStatus EatEnemy::tick() {
                         continue;
                     }
                     int enemy_loc = next_point->index;
+                    double score = 0.0;
                     if (info->game->map_enemy_predict[eu.first]) {
                         enemy_loc = info->game->map_enemy_loc[eu.first];
-//                        log_info("eu_id: %d enemy_loc: %d predict: %d", eu.first, next_point->index, enemy_loc);
                     }
-                    double score;
                     if (find(now_loc.begin(), now_loc.end(), enemy_loc) != now_loc.end() ||
                         find(choose_next_loc.begin(), choose_next_loc.end(), enemy_loc) != choose_next_loc.end()) {
-                        score = 10000;  // must be dead
+                        score += 100000.0;  // must be dead
                     }
                     else {
                         int remain_loc_num = info->leg_info->path.get_intersection_size(choose_next_loc, enemy_loc);
@@ -76,7 +75,17 @@ BT::NodeStatus EatEnemy::tick() {
                         for (auto& nl : choose_next_loc) {
                             total_dis += info->leg_info->path.get_cost(nl, enemy_loc);
                         }
-                        score = 40000.0 / (5.0 + remain_loc_num) + 400.0 / (1.0 + total_dis);
+                        score += 40000.0 / (5.0 + remain_loc_num) + 400.0 / (1.0 + total_dis);
+                        if (info->game->map_enemy_predict[eu.first] && info->game->map_enemy_repeat[eu.first] >= 2) {
+                            double min_dis = numeric_limits<double>::max();
+                            for (auto& nl : choose_next_loc) {
+                                double dis = info->leg_info->path.get_cost(nl, enemy_loc);
+                                if (dis < min_dis) {
+                                    min_dis = dis;
+                                }
+                            }
+                            score += 10000.0 / (min_dis + 1.0);
+                        }
                     }
                     if (score < min_score) {
                         min_score = score;

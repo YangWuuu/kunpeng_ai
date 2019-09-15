@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
         log_error("Usage: %s [player_id] [serverIp] [serverPort]\n", argv[0]);
         return -1;
     }
+    int my_team_id = std::stoi(argv[1]);
 
     auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     struct tm *ptm = localtime(&tt);
@@ -24,7 +25,7 @@ int main(int argc, char *argv[]) {
             (int) ptm->tm_year + 1900, (int) ptm->tm_mon + 1, (int) ptm->tm_mday,
             (int) ptm->tm_hour, (int) ptm->tm_min, (int) ptm->tm_sec);
 
-    string log_name = "battle_yangwuuu_" + string(date) + ".log";
+    string log_name = "battle_yangwuuu_" + to_string(my_team_id) + "_" + string(date) + ".log";
     string log_path = "/var/log/" + log_name;
 #ifdef OS_WINDOWS
     // windows init
@@ -60,11 +61,10 @@ int main(int argc, char *argv[]) {
 
     log_info("connect server success\n");
 
-    int myTeamId = std::stoi(argv[1]);
-    Player player(myTeamId);
+    Player player(my_team_id);
     /* Ïòserver×¢²á */
     char regMsg[200] = {'\0'};
-    sprintf(regMsg, R"({"msg_name":"registration","msg_data":{"team_id":%d,"team_name":"enemy"}})", myTeamId);
+    sprintf(regMsg, R"({"msg_name":"registration","msg_data":{"team_id":%d,"team_name":"enemy"}})", my_team_id);
     char regMsgWithLength[200] = {'\0'};
     sprintf(regMsgWithLength, "%05d%s", (int) strlen(regMsg), regMsg);
     send(hSocket, regMsgWithLength, (int) strlen(regMsgWithLength), 0);

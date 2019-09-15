@@ -245,8 +245,14 @@ void Game::update_danger() {
         Point::Ptr p = leg_info->path.to_point(index);
         for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
             danger_in_vision[p->next[d]->index] = true;
+            if (p->next[d]->wormhole) {
+                danger_in_vision[p->next[d]->wormhole->index] = true;
+            }
             for (DIRECTION dd : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT, DIRECTION::NONE}) {
                 danger_eat_in_vision[p->next[d]->next[dd]->index] = true;
+                if (p->next[d]->next[dd]->wormhole) {
+                    danger_eat_in_vision[p->next[d]->next[dd]->wormhole->index] = true;
+                }
             }
         }
     }
@@ -393,18 +399,20 @@ double Game::get_cost(int start, int end) {
 void Game::predict_enemy() {
     map_enemy_predict.clear();
     map_enemy_loc.clear();
+    map_enemy_repeat.clear();
+    const int repeat_times = 4;
     auto &now_round_info = *(vec_round_info.end() - 1);
     for (int enemy_id : leg_info->enemy_team.units) {
         for (int repeat_interval = 1; repeat_interval < 5; repeat_interval++) {
             if (map_enemy_predict[enemy_id]) {
                 continue;
             }
-            if (3 * repeat_interval >= vec_round_info.size()) {
+            if (repeat_times * repeat_interval >= vec_round_info.size()) {
                 continue;
             }
             bool is_break = false;
             vector<int> loc_record;
-            for (int i = 0; i < 4 * repeat_interval; i++) {
+            for (int i = 0; i < repeat_times * repeat_interval; i++) {
                 auto &round_info = *(vec_round_info.end() - 1 - i);
                 if (round_info->enemy_units.find(enemy_id) == round_info->enemy_units.end()) {
                     is_break = true;
@@ -416,9 +424,8 @@ void Game::predict_enemy() {
                 break;
             }
             bool is_repeat = true;
-            for (int r = 0; r < repeat_interval; r++) {
-                if (loc_record[r] != loc_record[r + 1] || loc_record[r + 1] != loc_record[r + 2] ||
-                    loc_record[r + 2] != loc_record[r + 3]) {
+            for (int rt = 0; rt < repeat_times - 1; rt++) {
+                if (loc_record[rt] != loc_record[rt + repeat_interval]) {
                     is_repeat = false;
                     break;
                 }
@@ -426,6 +433,7 @@ void Game::predict_enemy() {
             if (is_repeat) {
                 map_enemy_predict[enemy_id] = true;
                 map_enemy_loc[enemy_id] = loc_record[loc_record.size() - repeat_interval];
+                map_enemy_repeat[enemy_id] = repeat_interval;
                 log_info("round_id: %d is_eat: %d enemy_predict_id: %d repeat_interval: %d loc: %d",
                          now_round_info->round_id, is_eat, enemy_id, repeat_interval, map_enemy_loc[enemy_id]);
             }

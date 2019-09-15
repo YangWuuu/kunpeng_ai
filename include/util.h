@@ -589,6 +589,8 @@ public:
     void cal_vision_grids() {
         vision_grids = vector<vector<int>>(path.node_num, vector<int>());
         vision_grids_1 = vector<vector<int>>(path.node_num, vector<int>());
+        vision_grids_3 = vector<vector<int>>(path.node_num, vector<int>());
+        vision_grids_cross = vector<vector<int>>(path.node_num, vector<int>());
         for (int n = 0; n < path.node_num; n++) {
             auto p = path.to_point(n);
             int x = p->x;
@@ -598,14 +600,19 @@ public:
                     vision_grids[n].emplace_back(path.to_index(i, j));
                 }
             }
-//            for (int i = max(x - 1, 0); i <= min(x + 1, width - 1); i++) {
-//                for (int j = max(y - 1, 0); j <= min(y + 1, height - 1); j++) {
-//                    vision_grids_1[n].emplace_back(path.to_index(i, j));
-//                }
-//            }
+            for (int i = max(x - 1, 0); i <= min(x + 1, width - 1); i++) {
+                for (int j = max(y - 1, 0); j <= min(y + 1, height - 1); j++) {
+                    vision_grids_3[n].emplace_back(path.to_index(i, j));
+                }
+            }
             for (DIRECTION d : {DIRECTION::UP, DIRECTION::DOWN, DIRECTION::LEFT, DIRECTION::RIGHT}) {
                 vision_grids_1[n].emplace_back(path.to_point(n)->next[d]->index);
             }
+            vision_grids_cross.emplace_back(path.to_index(x, y));
+            vision_grids_cross.emplace_back(path.to_index(max(x - 1, 0), y));
+            vision_grids_cross.emplace_back(path.to_index(min(x + 1, width), y));
+            vision_grids_cross.emplace_back(path.to_index(x, max(y - 1, 0)));
+            vision_grids_cross.emplace_back(path.to_index(x, min(y + 1, height)));
         }
     }
 
@@ -618,7 +625,9 @@ public:
     Team my_team;
     Team enemy_team;
     vector<vector<int>> vision_grids;
+    vector<vector<int>> vision_grids_3;
     vector<vector<int>> vision_grids_1;
+    vector<vector<int>> vision_grids_cross;
 };
 
 inline int my_pow(int base, int exp) {

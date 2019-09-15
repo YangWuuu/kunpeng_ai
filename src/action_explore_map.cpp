@@ -46,10 +46,6 @@ BT::NodeStatus ExploreMap::tick() {
         }
     }
 
-//    map<int, pair<double, int>> mu_time;
-//    for (const auto &mu : info->round_info->my_units) {
-//        mu_time[mu.first] = make_pair(0, mu.second->loc->index);
-//    }
     map<int, int> mu_first_power;
     for (const auto &power : map_power) {
         int mu_id = -1;
