@@ -457,3 +457,4 @@ CMakeLists.txt.user*
 /*.zip
 *.fbl
 tags
+!/doc/ai_yang.exe
